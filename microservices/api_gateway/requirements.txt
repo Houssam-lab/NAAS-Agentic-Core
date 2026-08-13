@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-httpx
-pydantic-settings
-python-dotenv
-websockets
-pyjwt

@@ -1,2 +1,0 @@
-# Dependency constraints are now managed directly in requirements.txt.
-# This file is kept empty to avoid conflicts with version updates.
