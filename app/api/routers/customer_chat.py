@@ -29,7 +29,10 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ── D-173 Stage 3: منطق الدور في `customer_chat_support/turn_lifecycle.py` (compound source) ──
-from app.api.routers.customer_chat_support.turn_lifecycle import handle_turn
+from app.api.routers.customer_chat_support.turn_lifecycle import (
+    _semantic_tutor_enabled,  # noqa: F401 (D-252: إعادة تصدير لاختبارات patch النصية على القشرة)
+    handle_turn,
+)
 from app.api.routers.ws_auth import WsActor, extract_websocket_auth
 from app.api.schemas.customer_chat import (
     CustomerConversationDetails,
@@ -40,6 +43,9 @@ from app.core.database import get_db
 from app.core.di import get_logger
 from app.core.domain.user import User
 from app.deps.auth import CurrentUser, require_permissions
+from app.infrastructure.clients.orchestrator_client import (
+    orchestrator_client,  # noqa: F401 (D-252: إعادة تصدير لاختبار D-045 patch)
+)
 from app.services.auth.token_decoder import decode_token_payload
 from app.services.boundaries.customer_chat_boundary_service import (
     CustomerChatBoundaryService,

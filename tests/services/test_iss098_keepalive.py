@@ -53,7 +53,6 @@ os.environ.setdefault("SECRET_KEY", "x" * 64)
 def test_customer_keepalive_helper_exists() -> None:
     # D-252: بعد تفكيك الـ hotspot (D-173 Stage 3) انتقل `customer_chat` إلى
     # حزمة `customer_chat_support` المركّبة — الحارس يتحقق من الوحدة الحقيقية.
-    from app.api.routers import customer_chat as customer_chat_router
     from app.api.routers.customer_chat_support import transport
 
     def _read_compound_source() -> str:
@@ -72,8 +71,8 @@ def test_customer_keepalive_helper_exists() -> None:
         f"ISS-098: _run_turn_keepalive signature changed: {list(sig.parameters.keys())}"
     )
     # القشرة تستورد دورة الدور — تبقى سلسلة الاستدعاء حيّة عبر الحزمة المركّبة.
-    assert hasattr(customer_chat_router, "handle_turn") or "handle_turn" in src, (
-        "ISS-098: router shell must delegate to the turn lifecycle (compound source)."
+    assert "handle_turn" in src, (
+        "ISS-098: the compound source must expose `handle_turn` (router shell delegates to it)."
     )
 
 
@@ -161,7 +160,6 @@ def _make_connected_ws(sent: list[dict]) -> MagicMock:
 
 
 def test_customer_keepalive_emits_pong_periodically(monkeypatch) -> None:
-    from app.api.routers import customer_chat
     from app.api.routers.customer_chat_support import transport
 
     # Shrink the interval so the test is fast and deterministic. D-173 Stage 2b:
@@ -187,7 +185,6 @@ def test_customer_keepalive_emits_pong_periodically(monkeypatch) -> None:
 def test_keepalive_stops_when_ws_disconnected(monkeypatch) -> None:
     from starlette.websockets import WebSocketState
 
-    from app.api.routers import customer_chat
     from app.api.routers.customer_chat_support import transport
 
     monkeypatch.setattr(transport, "_TURN_KEEPALIVE_INTERVAL_SECONDS", 0.02)

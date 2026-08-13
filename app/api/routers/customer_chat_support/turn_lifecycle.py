@@ -85,9 +85,7 @@ async def handle_turn(
        النهائي، انتظار BKT، تحديث tutor_state (D-142 Phase 2)، إغلاق span.
     """
     request_id_value = payload.get("client_request_id")
-    client_request_id = (
-        str(request_id_value).strip() if request_id_value is not None else None
-    )
+    client_request_id = str(request_id_value).strip() if request_id_value is not None else None
     if client_request_id == "":
         client_request_id = None
     stream_request_id = client_request_id or str(uuid.uuid4())
@@ -239,11 +237,7 @@ async def handle_turn(
         )
     )
     _bkt_task.add_done_callback(
-        lambda t: (
-            logger.debug("bkt_task_done err=%s", t.exception())
-            if t.exception()
-            else None
-        )
+        lambda t: logger.debug("bkt_task_done err=%s", t.exception()) if t.exception() else None
     )
 
     # ── ذاكرة التدريس الدائمة (D-142 Phase 2 — خلف العلم، fail-open) ──
@@ -251,9 +245,7 @@ async def handle_turn(
     if _semantic_tutor_enabled() and local_conversation_id is not None:
         with contextlib.suppress(Exception):
             async with async_session_factory() as _ts_db:
-                tutor_state_ctx = await TutorStateService(_ts_db).load(
-                    local_conversation_id
-                )
+                tutor_state_ctx = await TutorStateService(_ts_db).load(local_conversation_id)
 
     # ── البثّ والتوجيه نحو الواجهة ────────────────────────────────────
     (
@@ -314,9 +306,7 @@ async def _stream_and_wait(
     pedagogy_directive: str,
     support_level: int,
     tutor_state_ctx: dict[str, object] | None,
-) -> tuple[
-    str, bool, bool, dict[str, object] | None, list[dict[str, object]], object | None
-]:
+) -> tuple[str, bool, bool, dict[str, object] | None, list[dict[str, object]], object | None]:
     """يشغّل تيار orchestrator ويوجّه كل حدث نحو الواجهة حتى الإغلاق.
 
     يُرجِع: (نص الإجابة المكتمل، حفظ محلي قبل الإغلاق، orchestrator persisted،
@@ -360,17 +350,13 @@ async def _stream_and_wait(
 
         # ISS-106 (D-WS-CARD-PERSIST-001): اجمع بطاقات ui_component المستقلة
         # لحفظها لاحقاً (تبقى بعد إعادة الدخول).
-        if event_type == "ui_component" and isinstance(
-            normalized_event.get("payload"), dict
-        ):
+        if event_type == "ui_component" and isinstance(normalized_event.get("payload"), dict):
             captured_ui_components.append(dict(normalized_event["payload"]))
 
         # D-115: مطهّر العرض المصفّح على كل delta نصّي — شبكة أمان فوق تنظيف
         # الـ orchestrator (لا ⟦⟧ ولا تعليمات مسرَّبة).
         display_event = normalized_event
-        if _is_text_event(normalized_event) and isinstance(
-            normalized_event.get("payload"), dict
-        ):
+        if _is_text_event(normalized_event) and isinstance(normalized_event.get("payload"), dict):
             chunk_text = normalized_event["payload"].get("content")
             if isinstance(chunk_text, str) and chunk_text:
                 display_event = {
@@ -454,9 +440,7 @@ async def _stream_and_wait(
                     ),
                 )
             except (WebSocketDisconnect, RuntimeError) as _send_err:
-                logger.debug(
-                    "customer_chat.error_send_failed: %s", type(_send_err).__name__
-                )
+                logger.debug("customer_chat.error_send_failed: %s", type(_send_err).__name__)
     finally:
         if stream_task is not None and not stream_task.done():
             stream_task.cancel()
@@ -508,9 +492,7 @@ async def _close_turn(
         complete_ai_response = _apply_complete_response_firewall(complete_ai_response)
         # D-113/D-115: حجب الإجابة النهائية على النسخة المحفوظة — شبكة أمان
         # حتمية ضد كشف الجواب (لا كشف في التدفّق العادي؛ الكشف لوضع مراجعة منفصل).
-        complete_ai_response = _apply_final_answer_redaction(
-            complete_ai_response, support_level
-        )
+        complete_ai_response = _apply_final_answer_redaction(complete_ai_response, support_level)
 
     # ── Persistence decision (single-writer coordination) ─────────────
     # المونوليث يملك الرسالة. إن سبق orchestrator الحفظ (persisted=True) ⇒ SKIP،
@@ -536,9 +518,7 @@ async def _close_turn(
             )
             # ISS-106 (D-WS-CARD-PERSIST-001): البطاقة الرياضية تُبنى من
             # النص المكتمل وتُرفق برسالة المساعد لتبقى بعد إعادة الدخول.
-            _assistant_card = _try_build_math_ui_component(
-                complete_ai_response.replace("\x00", "")
-            )
+            _assistant_card = _try_build_math_ui_component(complete_ai_response.replace("\x00", ""))
             for _attempt in range(_TURN_PERSIST_ATTEMPTS):
                 try:
                     async with async_session_factory() as db:
@@ -612,11 +592,7 @@ async def _close_turn(
     # D-142 Phase 2: تحديث ذاكرة جلسة التدريس الدائمة (خلف العلم، fail-open).
     # يضبط آخر خطوة عُرضت (مرساة منع التكرار تنجو من النافذة) + المفهوم النشط +
     # ميزانية المفهوم + قدرة الطالب (من BKT) — صف حيّ واحد لكل محادثة (upsert).
-    if (
-        _semantic_tutor_enabled()
-        and local_conversation_id is not None
-        and complete_ai_response
-    ):
+    if _semantic_tutor_enabled() and local_conversation_id is not None and complete_ai_response:
         with contextlib.suppress(Exception):
             _is_socratic_q = complete_ai_response.rstrip().endswith(("؟", "?"))
             async with async_session_factory() as _ts_db2:
@@ -624,30 +600,18 @@ async def _close_turn(
                 policy_decision = (
                     tutor_state_ctx.get("policy_decision") if tutor_state_ctx else None
                 )
-                learning_stage = (
-                    policy_decision.learning_stage if policy_decision else "definition"
-                )
-                representation_used = (
-                    policy_decision.representation if policy_decision else "text"
-                )
+                learning_stage = policy_decision.learning_stage if policy_decision else "definition"
+                representation_used = policy_decision.representation if policy_decision else "text"
                 interventions_used = (
-                    tutor_state_ctx.get("interventions_used", [])
-                    if tutor_state_ctx
-                    else []
+                    tutor_state_ctx.get("interventions_used", []) if tutor_state_ctx else []
                 )
                 # Log intervention
                 if policy_decision:
-                    interventions_used.append(
-                        f"{learning_stage}_{policy_decision.next_action}"
-                    )
+                    interventions_used.append(f"{learning_stage}_{policy_decision.next_action}")
                 # D-158: دلتا تقدّم المكوّنات المعرفية (يبنيها _cognitive_turn،
                 # يحقنها في dict tutor_state المشترك). المصدر الوحيد لِـ
                 # representations_delivered / _pending الذي يقتل التكرار عبر الكتل.
-                _kc_delta = (
-                    tutor_state_ctx.get("kc_progress_delta")
-                    if tutor_state_ctx
-                    else None
-                )
+                _kc_delta = tutor_state_ctx.get("kc_progress_delta") if tutor_state_ctx else None
                 await TutorStateService(_ts_db2).record_turn(
                     conversation_id=local_conversation_id,
                     user_id=actor.id,
