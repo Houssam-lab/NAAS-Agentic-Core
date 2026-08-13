@@ -1,3 +1,17 @@
+# الحالة النهائية (2026-08-13 ~22:00 UTC)
+
+- الفرع: `hotfix/codescene-hotspot-chat-stream-ws-decomposition` — آخر commit مدفوع: `e3be18a0` (سلسلة نظيفة: commit واحد فوق `b0888ee5`=origin/main، لا أي سرّ فيها — GH013 رفض سابقًا commits تحتوي مفتاح OpenRouter في task_progress_state.md).
+- **PR #15 أُغلق** بسبب حذف ref القديم — **PR #16 مفتوح**: https://github.com/Houssam-lab/NAAS-Agentic-Core/pull/16
+- GitHub Actions على PR #16: doc-integrity ✓، CI قيد التنفيذ (~26-45 دقيقة)، بوابات أخرى قيد التنفيذ.
+- الخطوة المتبقية: انتظار CI → فحص النتائج → التسليم (تقرير + رابط PR #16 + تعليمات squash merge).
+- إصلاح runtime-truth drift: boundary_customer importer_count 4→5 (turn_lifecycle.py مستورد جديد للـ boundary — متعمد) → `.runtime/truth_table.lock.json` حُدّث بـ `--update` (commit 607f39c3) وتمت إضافة قرار في decisions.md.
+- آخر commits مدفوعة: `836fb700` (توثيق baseline في decisions.md) على رأس `607f39c3` و`e3be18a0`. لا تُدفع `.memory/task_progress_state.md`.
+- حالة CI (~22:20): doc-integrity ✓ Structure ✓ Skills Doctrine ✓ Skills Architecture ✓ runtime-truth ✓ على آخر commits. قيد التنفيذ: CI (run 31747659820, ~26-45 دقيقة, test-monolith) وQodana (31747659803, ~20 دقيقة).
+- ملاحظة shell: بعض الجلسات عالقة بسبب ;1R — استخدم جلسة نظيفة جديدة (`fix2`). سكربت `bash /home/ubuntu/show_runs.sh | grep -E "31747659820|31747659803"` لمراقبة الruns.
+- بعد نجاح CI: إعداد تقرير التسليم النهائي (التقرير السابق يحتاج إعادة كتابة — PR #16 الآن).
+
+---
+
 # حالة المهمة — إصلاح hotspot chat_stream_ws (2026-08-13)
 
 ## المستودع

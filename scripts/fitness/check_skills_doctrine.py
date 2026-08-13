@@ -444,7 +444,10 @@ def check_adaptive_pedagogy_wiring() -> None:
     # D-173 Stage 3: بعد تفكيك hotspot `chat_stream_ws` انتقل تمرير مستوى الدعم
     # إلى شريحة دورة الدور — الفحص يقبل كلا النمطين: `'"support_level": sup_level'`
     # (المسار القديم) و`"support_level": support_level` (المتغيّر المفكك في context).
-    if '"support_level": sup_level' not in router_src and '"support_level": support_level' not in router_src:
+    if (
+        '"support_level": sup_level' not in router_src
+        and '"support_level": support_level' not in router_src
+    ):
         _fail("customer_chat no longer passes support_level in context (D-114/D-117).")
     # D-117: الـ prepend ممنوع — النموذج يُردّده حرفياً (تسرّب «هندسة التعليم»).
     if 'f"[توجيه تربوي]' in client_src:

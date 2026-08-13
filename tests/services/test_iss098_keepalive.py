@@ -57,6 +57,7 @@ def test_customer_keepalive_helper_exists() -> None:
 
     def _read_compound_source() -> str:
         from app.api.routers.customer_chat_support._sources import read_customer_chat_source
+
         return read_customer_chat_source()
 
     src = _read_compound_source()

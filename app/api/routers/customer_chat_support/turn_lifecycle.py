@@ -423,6 +423,11 @@ async def _stream_and_wait(
             keepalive_task.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await keepalive_task
+    except HTTPException as http_exc:
+        stream_error = http_exc
+        logger.error(f"HTTPException in compatibility facade stream: {http_exc}", exc_info=True)
+        # HTTPException تُنقل كما هي إلى الإطار النهائي (_emit_terminal_frames)
+        # الذي يُخرج status_code الأصلي — مطابق لسلوك main قبل التفكيك.
     except Exception as exc:
         stream_error = exc
         logger.error(f"Error in compatibility facade stream: {exc}", exc_info=True)

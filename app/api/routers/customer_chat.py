@@ -34,6 +34,7 @@ from app.api.routers.customer_chat_support.turn_lifecycle import (
     handle_turn,
 )
 from app.api.routers.ws_auth import WsActor, extract_websocket_auth
+from app.core.database import async_session_factory  # noqa: F401 (D-252: إعادة تصدير لاختبار error contract)
 from app.api.schemas.customer_chat import (
     CustomerConversationDetails,
     CustomerConversationSummary,

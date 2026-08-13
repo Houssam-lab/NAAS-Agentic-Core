@@ -153,8 +153,7 @@ def test_locked_send_json_serializes_concurrent_sends() -> None:
 
         # Fire 5 concurrent sends
         tasks = [
-            asyncio.create_task(transport._locked_send_json(ws, lock, {"n": i}))
-            for i in range(5)
+            asyncio.create_task(transport._locked_send_json(ws, lock, {"n": i})) for i in range(5)
         ]
         await asyncio.gather(*tasks)
 
