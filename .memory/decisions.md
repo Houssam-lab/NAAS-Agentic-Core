@@ -30,6 +30,9 @@ async def chat_stream_ws(websocket: WebSocket) -> None:
 **مقاييس ما بعد الجراحة (radon):** `chat_stream_ws` C(13) · `handle_turn` C(12) · `_stream_and_wait` B(8)
 · `_close_turn` D(23) — الأخير أعلى حد ratchet الطبيعي؛ رُفِع الحد في `pyproject.toml` per-file-ignores بقرارٍ منطوق
 (D-252) لأن هذا أقصى مستوى تفكيك سلوكي دون إعادة إنتاج الـ hotspot (كتلة الإغلاق الحتمية تحمل كل فروع النجاح/الخطأ).
+**تحديث baseline (2026-08-13):** بوابة `runtime-truth` رصدت drift في `boundary_customer`: importer_count 4→5
+لأن `turn_lifecycle.py` صار مستوردًا جديدًا لـ `CustomerChatBoundaryService` — تغيير متعمد ومتوقع نتيجة التفكيك،
+فأُعيد توليد القفل بـ `python scripts/runtime_truth.py --update` وحُدّث `.runtime/truth_table.lock.json` (commit 607f39c3).
 **سلطان النصي محفوظ حرفيًا (لا تغيير سلوكي — برهان البوابات):**
 - `customer_chat_support/_sources.py` manifest أُوسِّع بدورة الدور — `read_customer_chat_source()` يركّب القشرة
   + الحزمة، فيتغذى علىه كل حارس نصي (skills_doctrine D-119/D-114 · legacy noop · canonical/ownership fences).
