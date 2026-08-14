@@ -67,7 +67,17 @@ HEURISTIC_TOPIC_MAP: dict[str, str] = {
     "geometry": "geometry",
 }
 
-HEURISTIC_STOP_WORDS: set[str] = {"أريد", "أعطني", "اعطني", "هات", "التمرين", "تمرين", "بدون", "حل", "فقط"}
+HEURISTIC_STOP_WORDS: set[str] = {
+    "أريد",
+    "أعطني",
+    "اعطني",
+    "هات",
+    "التمرين",
+    "تمرين",
+    "بدون",
+    "حل",
+    "فقط",
+}
 
 
 def build_search_param_messages(question: str) -> list[dict[str, str]]:

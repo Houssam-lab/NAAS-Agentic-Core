@@ -74,9 +74,7 @@ def build_chat_fallback_messages(
     personalization_block = ""
     if personalization_context:
         personalization_block = f"\nمرجع الجودة:\n{personalization_context}"
-    final_prompt = (
-        f"{base_prompt}\n{strict_instruction}{personalization_block}\n{system_context}\n{history_text}"
-    )
+    final_prompt = f"{base_prompt}\n{strict_instruction}{personalization_block}\n{system_context}\n{history_text}"
     return [
         {"role": "system", "content": final_prompt},
         {"role": "user", "content": question},

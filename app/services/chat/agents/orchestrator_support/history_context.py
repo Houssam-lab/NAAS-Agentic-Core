@@ -68,11 +68,7 @@ def extract_context_anchor(
         cleaned = content.strip()
         if not cleaned:
             continue
-        if (
-            role == "user"
-            and not skipped_current_user
-            and cleaned.casefold() == normalized_current
-        ):
+        if role == "user" and not skipped_current_user and cleaned.casefold() == normalized_current:
             skipped_current_user = True
             continue
         return cleaned
@@ -125,11 +121,7 @@ def build_recent_history_brief(
         cleaned = " ".join(content.split()).strip()
         if not cleaned:
             continue
-        if (
-            role == "user"
-            and not skipped_current_user
-            and cleaned.casefold() == normalized_current
-        ):
+        if role == "user" and not skipped_current_user and cleaned.casefold() == normalized_current:
             skipped_current_user = True
             continue
         role_label = "المستخدم" if role == "user" else "المساعد"

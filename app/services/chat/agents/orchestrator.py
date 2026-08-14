@@ -430,8 +430,18 @@ class OrchestratorAgent:
     ) -> AsyncGenerator[str, None]:
         """قشرة تفويض — الشريحة في `explanation` (شرح على الحل الرسمي كمصدر حقيقة)."""
         messages = [
-            {"role": "system", "content": _explanation_shard.build_explanation_system_prompt(personalization_context)},
-            {"role": "user", "content": _explanation_shard.build_explanation_user_message(question, content, solution)},
+            {
+                "role": "system",
+                "content": _explanation_shard.build_explanation_system_prompt(
+                    personalization_context
+                ),
+            },
+            {
+                "role": "user",
+                "content": _explanation_shard.build_explanation_user_message(
+                    question, content, solution
+                ),
+            },
         ]
         async for chunk in self._stream_ai_chunks(messages):
             if hasattr(chunk, "choices"):

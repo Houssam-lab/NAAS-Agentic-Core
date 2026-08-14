@@ -36,13 +36,16 @@ def select_best_candidate(candidates: list[dict[str, object]] | None) -> dict[st
     return candidates[0]
 
 
-def should_request_solution(writer_intent_value: object, writer_intent: object) -> tuple[bool, bool]:
+def should_request_solution(
+    writer_intent_value: object, writer_intent: object
+) -> tuple[bool, bool]:
     """(include_solution, exclude_solution) من نية الكاتب — نفس الشروط الأصلية.
 
     ملاحظة: النية النهائية تُحسَب خارج الدالة؛ هنا نطبّق نفس قواعد التحويل.
     """
-    include_solution = writer_intent in (writer_intent_value.SOLUTION_REQUEST, writer_intent_value.GRADING_REQUEST)
+    include_solution = writer_intent in (
+        writer_intent_value.SOLUTION_REQUEST,
+        writer_intent_value.GRADING_REQUEST,
+    )
     exclude_solution = writer_intent == writer_intent_value.QUESTION_ONLY_REQUEST
     return include_solution, exclude_solution
-
-
