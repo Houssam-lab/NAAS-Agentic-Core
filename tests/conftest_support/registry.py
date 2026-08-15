@@ -56,9 +56,7 @@ def _get_session_factory() -> async_sessionmaker[AsyncSession]:
     """يعيد مصنع الجلسات مع ضمان ربطه بنواة قواعد البيانات للاختبارات."""
     if not _db_dependencies_available():
         # D-258 follow-up: بيئاتٌ بلا اعتمادات (بوابة Skills Doctrine Gate — D-069).
-        raise ModuleNotFoundError(
-            "sqlalchemy غير متوفر في هذه البيئة — لا مصنع جلسات اختباري ممكن"
-        )
+        raise ModuleNotFoundError("sqlalchemy غير متوفر في هذه البيئة — لا مصنع جلسات اختباري ممكن")
     global _session_factory
     if _session_factory is not None:
         return _session_factory

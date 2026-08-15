@@ -12,6 +12,7 @@
 Usage:
     python3.12 scripts/e2e_d258_supabase_live.py "اشرح قانون نيوتن الثاني"
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -131,14 +132,15 @@ def _conv_count(user_id: int) -> int | None:
         )
         with conn.cursor() as cur:
             # D-024: فضاء العميل = customer_conversations (لا conversation_history).
-            cur.execute("SELECT count(*) FROM customer_conversations WHERE user_id=%s;", (int(user_id),))
+            cur.execute(
+                "SELECT count(*) FROM customer_conversations WHERE user_id=%s;", (int(user_id),)
+            )
             n = int(cur.fetchone()[0])
         conn.close()
         return n
     except Exception as exc:
         print(f"  (direct check skipped: {exc})")
         return None
-
 
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -175,7 +177,9 @@ async def main() -> int:
         check("USER login", bool(user_token), f"user_id={uid}")
 
         # 3b) REST حيّ بسيط للأدمن (لا حرق LLM)
-        r = await c.get(f"{BACKEND}/api/security/user/me", headers={"Authorization": f"Bearer {admin_token}"})
+        r = await c.get(
+            f"{BACKEND}/api/security/user/me", headers={"Authorization": f"Bearer {admin_token}"}
+        )
         check("admin REST /api/security/user/me", r.status_code == 200, f"status={r.status_code}")
 
     # قبل المحادثة: عدّ الصفوف
@@ -188,8 +192,11 @@ async def main() -> int:
     url = f"{scheme}://{host}/api/chat/ws?token={user_token}&session_id={uuid.uuid4()}"
     async with websockets.connect(url, ping_interval=None, open_timeout=20) as ws:
         res = await turn(ws, question, None)
-        check("WS chat round-trip", res["terminal"] in ("assistant_final", "complete"),
-              f"terminal={res['terminal']} text_len={len(res['text'])} ui={len(res['ui_components'])}")
+        check(
+            "WS chat round-trip",
+            res["terminal"] in ("assistant_final", "complete"),
+            f"terminal={res['terminal']} text_len={len(res['text'])} ui={len(res['ui_components'])}",
+        )
         if res["text"]:
             print(f"   sample: {res['text'][:120]!r}")
 
@@ -198,10 +205,14 @@ async def main() -> int:
     if before is not None and after is not None:
         check("persistence on Supabase", after >= before, f"before={before} after={after}")
     else:
-        print("  (persistence bridge check skipped — DATABASE_URL/SUPABASE_EDGE_FUNCTION_KEY غير متوفرين)")
+        print(
+            "  (persistence bridge check skipped — DATABASE_URL/SUPABASE_EDGE_FUNCTION_KEY غير متوفرين)"
+        )
 
     n = sum(CHECKS)
-    print(f"\nالخلاصة: {n}/{len(CHECKS)} أخضر {'— E2E حيّ كامل ✅' if n == len(CHECKS) else '— فحص ما نجح في الأعلى'}")
+    print(
+        f"\nالخلاصة: {n}/{len(CHECKS)} أخضر {'— E2E حيّ كامل ✅' if n == len(CHECKS) else '— فحص ما نجح في الأعلى'}"
+    )
     return 0 if n == len(CHECKS) else 1
 
 
