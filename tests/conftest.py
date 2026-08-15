@@ -61,7 +61,13 @@ from tests.conftest_support.registry import (  # noqa: F401
 )
 from tests.conftest_support.schema import _ensure_schema
 
-engine = _get_engine()
+# D-258 follow-up: بيئاتٌ بلا اعتمادات قواعد البيانات (مثل بوابة Skills Doctrine
+# Gate في CI — D-069) يجب أن تُجمَّع دون فشلٍ عند التحميل؛ التهيئة تُجمَّع هنا
+# فقط عند توفر الاعتمادات وإلا يبقى الاسم محروسًا (importorskip داخل fixtures).
+try:
+    engine = _get_engine()
+except ModuleNotFoundError:  # pragma: no cover — بيئات بلا اعتمادات فقط
+    engine = None
 
 # ── managed_test_session (كان fixture داليًا) ──────────────────────────────
 

@@ -26,6 +26,12 @@ TestingSessionLocal: async_sessionmaker[AsyncSession] | None
 
 def _get_engine() -> AsyncEngine:
     """يبني محرك SQLite داخل الذاكرة عند الحاجة فقط للاختبارات."""
+    if not _db_dependencies_available():
+        # D-258 follow-up: بيئاتٌ بلا اعتمادات (بوابة Skills Doctrine Gate — D-069)
+        # لا تحمل sqlalchemy أصلًا — الخطأ يُرفَع صراحة بدل فشل استيراد غامض.
+        raise ModuleNotFoundError(
+            "sqlalchemy غير متوفر في هذه البيئة — لا تهيئة محرك اختباري ممكنة"
+        )
     global _engine
     if _engine is not None:
         return _engine
@@ -48,6 +54,11 @@ async def _get_engine_locked() -> AsyncEngine:
 
 def _get_session_factory() -> async_sessionmaker[AsyncSession]:
     """يعيد مصنع الجلسات مع ضمان ربطه بنواة قواعد البيانات للاختبارات."""
+    if not _db_dependencies_available():
+        # D-258 follow-up: بيئاتٌ بلا اعتمادات (بوابة Skills Doctrine Gate — D-069).
+        raise ModuleNotFoundError(
+            "sqlalchemy غير متوفر في هذه البيئة — لا مصنع جلسات اختباري ممكن"
+        )
     global _session_factory
     if _session_factory is not None:
         return _session_factory
@@ -74,9 +85,18 @@ async def _get_session_factory_locked() -> async_sessionmaker[AsyncSession]:
         return _get_session_factory()
 
 
-if _db_dependencies_available():
-    engine = _get_engine()
-    TestingSessionLocal = _get_session_factory()
-else:
+# D-258 follow-up: حراسةٌ مزدوجة — بيئاتٌ بلا اعتمادات قواعد البيانات
+# (بوابة Skills Doctrine Gate في CI — D-069 لا تنصّب إلا pydantic) يجب أن
+# تُجمَّع دون فشلٍ عند التحميل؛ `_db_dependencies_available` تحققٌ استباقي
+# لكن `importlib.util.find_spec` قد يمرّر مسارات وهمية، فالحراسة هنا تمتص
+# `ModuleNotFoundError` الفعلي من الاستيراد المتأخر.
+try:
+    if _db_dependencies_available():
+        engine = _get_engine()
+        TestingSessionLocal = _get_session_factory()
+    else:
+        engine = None
+        TestingSessionLocal = None
+except ModuleNotFoundError:  # pragma: no cover — بيئات بلا اعتمادات فقط
     engine = None
     TestingSessionLocal = None
