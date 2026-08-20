@@ -931,4 +931,4 @@ benmerahhoussam16@gmail.com
 1111 الرقم السري للادمن
 houssamannaba963@gmail.com
 الرقم السري للمستخدم 1111
-DATABASE_URL="postgresql://postgres.aocnuqhxrhxgbfcgbxfy:199720242025%40HOUSSAMbenmerah@aws-1-eu-west-3.pooler.supabase.com:6543/postgres?sslmode=require"
+DATABASE_URL="postgresql://postgres.[REDACTED — GitHub push protection: real key removed]@aws-1-eu-west-3.pooler.supabase.com:6543/postgres?sslmode=require"
