@@ -1,0 +1,1 @@
+feat(transition): D-240 — transition-service multi-agent AI work-transition layer

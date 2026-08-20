@@ -3,6 +3,13 @@
 يحترم LLM_MOCK_MODE (نفس اصطلاح بقية خدمات المستودع) ويستخدم OpenRouter
 كباقي الخدمات. أي مخرج لغوي يُنتج **تفسير** بيانات حتمية من `core.engine`؛
 إذا تطلب الوكيل رقماً أو تصنيفاً فعليه استعمال المحرك الحتمي أولاً.
+
+**D-189 · D-185 (نمط التوريد):** نداءات الخدمة الصادرة تمر عبر نسخة مورّدة
+محروسة من `shared.http_client.correlated` (`core/correlated_http.py`) —
+لا بناء مباشر لـ `httpx.AsyncClient` خارج المصنع المصرَّح (بوابة
+`scripts/fitness/check_correlated_http.py` تراقب ذلك عبر AST). المصدر
+الوحيد هو `shared/http_client/correlated.py`، ويجب أن تظل النسخة المورّدة
+مطابقة له (بوابة تكافؤ `check_vendor_parity.py`).
 """
 
 from __future__ import annotations
@@ -11,6 +18,8 @@ import logging
 import os
 
 from pydantic_settings import BaseSettings
+
+from .core.correlated_http import correlated_client
 
 logger = logging.getLogger("transition_service.ai")
 
@@ -47,15 +56,11 @@ async def llm_narrate(prompt: str) -> str:
         settings = _get_settings()
         if not settings.openrouter_api_key:
             return mock_llm(prompt)
-        import httpx
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with correlated_client(timeout=60.0) as client:
             response = await client.post(
                 f"{settings.base_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.openrouter_api_key}",
-                    "Content-Type": "application/json",
-                },
+                headers={"Content-Type": "application/json"},
+                auth=("Bearer", settings.openrouter_api_key),
                 json={
                     "model": settings.model,
                     "messages": [
