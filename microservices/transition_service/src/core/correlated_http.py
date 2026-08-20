@@ -3,12 +3,11 @@
 **D-189 · D4:** حقن `X-Correlation-ID` و`traceparent` على كل نداء صادر — مصدر
 واحد داخل الخدمة بدل بناءات متفرّقة لـ `httpx.AsyncClient`. الخدمات المصغّرة
 لا تستورد `shared` (قانون حدود الخدمات)، فيُورَّد المصدر الواحد داخل كل خدمة
-تحتفظ ببوابة تكافؤ (``scripts/fitness/check_vendor_parity.py``) تضمن بقاء
-النسخة المورّدة مطابقةً للمصدر في `shared/http_client/correlated.py` حرفياً.
-
-**عقد التوريد:** أي تعديل على `shared/http_client/correlated.py` يجب أن يمتد
-إلى هذه النسخة في الدفعة نفسها — وإلا انكسرت بوابة `check_vendor_parity.py`
-في CI.
+(هذا الملف منسوخٌ حرفياً من `shared/http_client/correlated.py`)، وتراقب بوابة
+`scripts/fitness/check_correlated_http.py` حدود المصانع المسموحة عبر AST —
+أما مطابقة النسخة المورّدة للمصدر فموجّهٌ في وصف هذه الخدمة (`microservices/transition_service/README.md`)،
+حيث إن إنشاء بوابة «توريد» عامةٍ خارج نطاق هذه الدفعة يكسر قاعدة `check_governance_registry.py`
+(لا بوّاباتٍ مذكورةً بلا ملفّ — D-266).
 
 ## ما يفعله
 

@@ -8,8 +8,8 @@
 محروسة من `shared.http_client.correlated` (`core/correlated_http.py`) —
 لا بناء مباشر لـ `httpx.AsyncClient` خارج المصنع المصرَّح (بوابة
 `scripts/fitness/check_correlated_http.py` تراقب ذلك عبر AST). المصدر
-الوحيد هو `shared/http_client/correlated.py`، ويجب أن تظل النسخة المورّدة
-مطابقة له (بوابة تكافؤ `check_vendor_parity.py`).
+الوحيد هو `shared/http_client/correlated.py`، والنسخة المورّدة في
+`core/correlated_http.py` منسوخةٌ حرفياً منه (D-185).
 """
 
 from __future__ import annotations
