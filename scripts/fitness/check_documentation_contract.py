@@ -74,22 +74,28 @@ def _validate_manifest_shape(payload: dict, failures: list[str]) -> list[dict]:
     return [entry for entry in documents if isinstance(entry, dict)]
 
 
-def _validate_manifest_entry(
-    entry: dict, seen: set[str], failures: list[str]
-) -> tuple[str, str] | None:
+def _manifest_path(entry: dict, failures: list[str]) -> str | None:
     path = entry.get("path")
-    role = entry.get("role")
-    audience = entry.get("audience")
-    authority = entry.get("authority")
     if not isinstance(path, str) or not path:
         failures.append("❌ عنصر manifest بلا path صالح.")
         return None
     if Path(path).is_absolute() or ".." in Path(path).parts:
         failures.append(f"❌ مسار manifest خارج جذر المستودع: {path}")
+    return path
+
+
+def _check_manifest_metadata(entry: dict, path: str, failures: list[str]) -> str:
+    role = entry.get("role")
+    audience = entry.get("audience")
+    authority = entry.get("authority")
     if not all(isinstance(value, str) and value.strip() for value in (role, audience)):
         failures.append(f"❌ وثيقة manifest بلا audience/role موصوفين: {path}")
     if authority not in {"primary", "supporting"}:
         failures.append(f"❌ وثيقة manifest بلا authority معتمد (primary/supporting): {path}")
+    return role if isinstance(role, str) else ""
+
+
+def _check_manifest_identity(entry: dict, path: str, seen: set[str], failures: list[str]) -> None:
     if path in seen:
         failures.append(f"❌ المسار مكرر في manifest: {path}")
     seen.add(path)
@@ -97,7 +103,17 @@ def _validate_manifest_entry(
         failures.append(f"❌ كل وثيقة في manifest يجب أن تكون live: {path}")
     if not (REPO_ROOT / path).is_file():
         failures.append(f"❌ وثيقة manifest مفقودة: {path}")
-    return path, role if isinstance(role, str) else ""
+
+
+def _validate_manifest_entry(
+    entry: dict, seen: set[str], failures: list[str]
+) -> tuple[str, str] | None:
+    path = _manifest_path(entry, failures)
+    if path is None:
+        return None
+    role = _check_manifest_metadata(entry, path, failures)
+    _check_manifest_identity(entry, path, seen, failures)
+    return path, role
 
 
 def _check_required_manifest_documents(entries: list[tuple[str, str]], failures: list[str]) -> None:

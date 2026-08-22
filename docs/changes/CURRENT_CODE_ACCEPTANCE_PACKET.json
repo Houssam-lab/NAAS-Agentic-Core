@@ -363,7 +363,7 @@
     "changed_paths_excluding_packet": [
       "scripts/fitness/check_documentation_contract.py"
     ],
-    "content_sha256_excluding_packet": "bfdf41ac155868cbc829793395d232c87d80a46eb7c928d9320f15b18d31afe5",
+    "content_sha256_excluding_packet": "fa70ba03180bd596b5a4ca69c708862278397f00f0a78f3055aea8c7db3cc8fa",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
