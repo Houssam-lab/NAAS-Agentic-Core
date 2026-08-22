@@ -137,7 +137,7 @@ def main() -> int:
     if not isinstance(packet_evidence, list) or not packet_evidence:
         fail("packet must name at least one evidence source")
     else:
-        unknown = sorted(set(str(identifier) for identifier in packet_evidence) - evidence_ids)
+        unknown = sorted({str(identifier) for identifier in packet_evidence} - evidence_ids)
         if unknown:
             fail(f"packet names unknown evidence ids: {unknown}")
 
@@ -165,7 +165,7 @@ def main() -> int:
 
     applications = packet.get("local_application", [])
     application_ids = {str(row.get("standard")) for row in applications if isinstance(row, dict)}
-    if set(str(identifier) for identifier in standards) != application_ids:
+    if {str(identifier) for identifier in standards} != application_ids:
         fail("every named standard must have exactly one local_application trace")
     for index, row in enumerate(applications, start=1):
         if not isinstance(row, dict):
@@ -195,7 +195,7 @@ def main() -> int:
     if not isinstance(offer_ids, list) or not offer_ids:
         fail("commercial trace must name one or more catalog offer ids")
     else:
-        unknown_offers = sorted(set(str(identifier) for identifier in offer_ids) - catalog_offer_ids)
+        unknown_offers = sorted({str(identifier) for identifier in offer_ids} - catalog_offer_ids)
         if unknown_offers:
             fail(f"commercial trace names unknown offers: {unknown_offers}")
     for field in ("customer_problem_ar", "value_hypothesis_ar", "foreign_currency_path_ar", "foundation_exception_ar"):

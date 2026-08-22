@@ -37,9 +37,7 @@ def current_paths() -> list[str]:
             names.update(normalize(line) for line in output.splitlines() if line.strip())
         porcelain = run(["git", "status", "--porcelain=v1", "--untracked-files=all"])
         for line in porcelain.splitlines():
-            if line.startswith("?? "):
-                names.add(normalize(line[3:]))
-            elif len(line) >= 4 and line[0] in "MADRCU" or len(line) >= 4 and line[1] in "MADRCU":
+            if line.startswith("?? ") or (len(line) >= 4 and line[0] in "MADRCU") or (len(line) >= 4 and line[1] in "MADRCU"):
                 names.add(normalize(line[3:]))
     return sorted(name for name in names if name)
 

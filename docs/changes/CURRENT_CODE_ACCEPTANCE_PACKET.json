@@ -361,9 +361,13 @@
   "git_change_snapshot": {
     "base_ref": "WORKTREE",
     "changed_paths_excluding_packet": [
-      ".github/workflows/ci.yml"
+      "pyproject.toml",
+      "scripts/fitness/check_code_acceptance.py",
+      "scripts/fitness/check_documentation_contract.py",
+      "scripts/research/refresh_acceptance_diff_snapshot.py",
+      "test_validate.py"
     ],
-    "content_sha256_excluding_packet": "271380e9c82126def0207daef401ecc623e4c2dd8e3977a93c4efc4c5a8c2cbb",
+    "content_sha256_excluding_packet": "61061681f64ce8ab3af0310c21bb881eabfce408bed098052ccc0a7d8fac9f2a",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }

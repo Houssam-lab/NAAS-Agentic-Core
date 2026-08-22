@@ -182,7 +182,7 @@ def _matching_documents(pattern: str, excludes: tuple[str, ...]) -> list[str]:
 
 def _scan_documents(entries: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """يوسّع نطاق البيان إلى كل الوثائق الحية المعلنة في scan_globs."""
-    paths: dict[str, str] = {path: role for path, role in entries}
+    paths: dict[str, str] = dict(entries)
     patterns, excludes = _manifest_scan_config()
     for pattern in patterns:
         for relative in _matching_documents(pattern, excludes):
