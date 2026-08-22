@@ -130,25 +130,42 @@ def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
     return entries
 
 
-def _scan_documents(entries: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """يوسّع نطاق البيان إلى كل الوثائق الحية المعلنة في scan_globs."""
-    paths: dict[str, str] = {path: role for path, role in entries}
+def _manifest_scan_config() -> tuple[tuple[str, ...], tuple[str, ...]]:
     try:
         payload = json.loads(_read(MANIFEST))
     except json.JSONDecodeError:
-        return entries
-    excludes = tuple(str(item) for item in payload.get("exclude_globs", []))
-    for pattern in payload.get("scan_globs", []):
-        for document in REPO_ROOT.glob(str(pattern)):
-            if not document.is_file() or document.suffix.lower() != ".md":
-                continue
-            relative = str(document.relative_to(REPO_ROOT))
-            if any(
-                (exclude.endswith("/**") and relative.startswith(exclude[:-3].rstrip("/") + "/"))
-                or Path(relative).match(exclude)
-                for exclude in excludes
-            ):
-                continue
+        return (), ()
+    return (
+        tuple(str(item) for item in payload.get("scan_globs", [])),
+        tuple(str(item) for item in payload.get("exclude_globs", [])),
+    )
+
+
+def _is_excluded(relative: str, excludes: tuple[str, ...]) -> bool:
+    for exclude in excludes:
+        prefix = exclude[:-3].rstrip("/") + "/" if exclude.endswith("/**") else ""
+        if (prefix and relative.startswith(prefix)) or Path(relative).match(exclude):
+            return True
+    return False
+
+
+def _matching_documents(pattern: str, excludes: tuple[str, ...]) -> list[str]:
+    relatives: list[str] = []
+    for document in REPO_ROOT.glob(pattern):
+        if not document.is_file() or document.suffix.lower() != ".md":
+            continue
+        relative = str(document.relative_to(REPO_ROOT))
+        if not _is_excluded(relative, excludes):
+            relatives.append(relative)
+    return relatives
+
+
+def _scan_documents(entries: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """يوسّع نطاق البيان إلى كل الوثائق الحية المعلنة في scan_globs."""
+    paths: dict[str, str] = {path: role for path, role in entries}
+    patterns, excludes = _manifest_scan_config()
+    for pattern in patterns:
+        for relative in _matching_documents(pattern, excludes):
             paths.setdefault(relative, "scan")
     return sorted(paths.items())
 
