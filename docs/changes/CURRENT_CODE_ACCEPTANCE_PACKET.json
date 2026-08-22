@@ -432,7 +432,7 @@
       "test_validate.py",
       "tests/fitness/test_documentation_contract_gate.py"
     ],
-    "content_sha256_excluding_packet": "55d6444fc8a9e06a08abcd5e1424d63b50ed1279e25efb26aef4789228a784ae",
+    "content_sha256_excluding_packet": "cc0652fb3d8e7dc9b59cd080453c2652d430832d000f53271b0b1263889246f7",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }

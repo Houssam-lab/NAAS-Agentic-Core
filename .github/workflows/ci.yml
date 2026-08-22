@@ -134,6 +134,11 @@ jobs:
       RECOVERY_ADMIN_PASSWORD: dummy-pass-for-ci
     steps:
       - uses: actions/checkout@v5
+        with:
+          # D-277: the acceptance packet compares the PR diff to the base SHA.
+          # A shallow checkout cannot resolve base...HEAD, so fail-closed validation
+          # would crash before checking the packet at all.
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
