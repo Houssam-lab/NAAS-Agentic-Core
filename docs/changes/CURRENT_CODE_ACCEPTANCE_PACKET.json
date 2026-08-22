@@ -439,7 +439,7 @@
       "tests/core/test_d177_rate_limit_resilience.py",
       "tests/fitness/test_documentation_contract_gate.py"
     ],
-    "content_sha256_excluding_packet": "c79fee295b6cf34ef7552feb2499e4e2e2b69276cc14e476b3d7b74e123a5e54",
+    "content_sha256_excluding_packet": "2be0530e7e82d2ddd3e263c1f2d40aad1d9891a19c0abd12d89aa3ccec301d1e",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
