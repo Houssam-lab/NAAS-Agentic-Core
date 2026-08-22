@@ -25,7 +25,7 @@
 | ملف | الدور |
 |-----|------|
 | [`START_HERE.md`](START_HERE.md) | نقطة البداية الوحيدة للمطورين الجدد — المسار التشغيلي الحي |
-| [`DOCUMENTATION_CONTRACT.md`](DOCUMENTATION_CONTRACT.md) · [`DOCUMENTATION_MANIFEST.json`](DOCUMENTATION_MANIFEST.json) | عقد التوثيق الحي وبيانه الآلي؛ الفشل في بوابته يمنع الدمج |
+| [`DOCUMENTATION_CONTRACT.md`](DOCUMENTATION_CONTRACT.md) · [`DOCUMENTATION_MANIFEST.json`](DOCUMENTATION_MANIFEST.json) | عقد التوثيق الحي وبيانه الآلي؛ يحدد الوثائق الحية ويفحص كل Markdown غير مؤرشف؛ الفشل في بوابته يمنع الدمج |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | نظرة معمارية مبسطة (التفصيل الحيّ: CLAUDE.md §3) |
 | [`REPOSITORY_MAP.md`](REPOSITORY_MAP.md) | خريطة المستودع |
 | [`guides/BEGINNER_GUIDE.md`](guides/BEGINNER_GUIDE.md) · [`guides/NEWCOMER_CODEBASE_MAP.md`](guides/NEWCOMER_CODEBASE_MAP.md) | أدلة المبتدئين |
