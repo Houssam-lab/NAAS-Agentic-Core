@@ -157,12 +157,16 @@ def _manifest_scan_config() -> tuple[tuple[str, ...], tuple[str, ...]]:
     )
 
 
-def _is_excluded(relative: str, excludes: tuple[str, ...]) -> bool:
-    for exclude in excludes:
-        prefix = exclude[:-3].rstrip("/") + "/" if exclude.endswith("/**") else ""
-        if (prefix and relative.startswith(prefix)) or Path(relative).match(exclude):
+def _matches_exclusion(relative: str, exclude: str) -> bool:
+    if exclude.endswith("/**"):
+        prefix = exclude[:-3].rstrip("/") + "/"
+        if relative.startswith(prefix):
             return True
-    return False
+    return Path(relative).match(exclude)
+
+
+def _is_excluded(relative: str, excludes: tuple[str, ...]) -> bool:
+    return any(_matches_exclusion(relative, exclude) for exclude in excludes)
 
 
 def _matching_documents(pattern: str, excludes: tuple[str, ...]) -> list[str]:
