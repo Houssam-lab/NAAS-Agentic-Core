@@ -21,7 +21,7 @@ DOC_WORKFLOW = REPO_ROOT / ".github/workflows/doc_integrity.yml"
 BRANCH_POLICY = REPO_ROOT / ".github/branch-protection-policy.json"
 CODEOWNERS = REPO_ROOT / ".github/CODEOWNERS"
 
-_LINK = re.compile(r"\]\(([^)]+)\)")
+_LINK = re.compile(r"]\(([^)]+)\)")
 _STALE_PATTERNS: tuple[tuple[str, str], ...] = (
     ("ai-for-solution-labs/my_ai_project", "اسم مستودع تاريخي في تعليمات تشغيلية"),
     ("HOUSSAM16ai/my_ai_project", "اسم مستودع تاريخي في تعليمات تشغيلية"),
@@ -48,16 +48,22 @@ def _target_path(document: Path, raw_target: str) -> Path:
     return (document.parent / target).resolve()
 
 
-def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
+def _load_manifest(failures: list[str]) -> dict:
     if not MANIFEST.is_file():
         failures.append("❌ ملف manifest مفقود: docs/DOCUMENTATION_MANIFEST.json")
-        return []
+        return {}
     try:
         payload = json.loads(_read(MANIFEST))
     except json.JSONDecodeError as error:
         failures.append(f"❌ manifest غير صالح JSON: {error}")
-        return []
+        return {}
+    if not isinstance(payload, dict):
+        failures.append("❌ manifest يجب أن يكون كائن JSON.")
+        return {}
+    return payload
 
+
+def _validate_manifest_shape(payload: dict, failures: list[str]) -> list[dict]:
     documents = payload.get("documents")
     if not isinstance(documents, list) or not documents:
         failures.append("❌ manifest يجب أن يحتوي على قائمة documents غير فارغة.")
@@ -65,38 +71,36 @@ def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
     for field in ("scan_globs", "exclude_globs"):
         if not isinstance(payload.get(field), list) or not payload[field]:
             failures.append(f"❌ manifest يجب أن يعلن قائمة {field} غير فارغة.")
+    return [entry for entry in documents if isinstance(entry, dict)]
 
-    entries: list[tuple[str, str]] = []
-    seen: set[str] = set()
-    for entry in documents:
-        if not isinstance(entry, dict):
-            failures.append("❌ كل عنصر في manifest يجب أن يكون كائنًا.")
-            continue
-        path = entry.get("path")
-        status = entry.get("status")
-        role = entry.get("role")
-        audience = entry.get("audience")
-        authority = entry.get("authority")
-        if not isinstance(path, str) or not path:
-            failures.append("❌ عنصر manifest بلا path صالح.")
-            continue
-        path_object = Path(path)
-        if path_object.is_absolute() or ".." in path_object.parts:
-            failures.append(f"❌ مسار manifest خارج جذر المستودع: {path}")
-        if not all(isinstance(value, str) and value.strip() for value in (role, audience)):
-            failures.append(f"❌ وثيقة manifest بلا audience/role موصوفين: {path}")
-        if authority not in {"primary", "supporting"}:
-            failures.append(f"❌ وثيقة manifest بلا authority معتمد (primary/supporting): {path}")
-        if path in seen:
-            failures.append(f"❌ المسار مكرر في manifest: {path}")
-        seen.add(path)
-        if status != "live":
-            failures.append(f"❌ كل وثيقة في manifest يجب أن تكون live: {path}")
-        absolute = REPO_ROOT / path
-        if not absolute.is_file():
-            failures.append(f"❌ وثيقة manifest مفقودة: {path}")
-        entries.append((path, role if isinstance(role, str) else ""))
 
+def _validate_manifest_entry(
+    entry: dict, seen: set[str], failures: list[str]
+) -> tuple[str, str] | None:
+    path = entry.get("path")
+    role = entry.get("role")
+    audience = entry.get("audience")
+    authority = entry.get("authority")
+    if not isinstance(path, str) or not path:
+        failures.append("❌ عنصر manifest بلا path صالح.")
+        return None
+    if Path(path).is_absolute() or ".." in Path(path).parts:
+        failures.append(f"❌ مسار manifest خارج جذر المستودع: {path}")
+    if not all(isinstance(value, str) and value.strip() for value in (role, audience)):
+        failures.append(f"❌ وثيقة manifest بلا audience/role موصوفين: {path}")
+    if authority not in {"primary", "supporting"}:
+        failures.append(f"❌ وثيقة manifest بلا authority معتمد (primary/supporting): {path}")
+    if path in seen:
+        failures.append(f"❌ المسار مكرر في manifest: {path}")
+    seen.add(path)
+    if entry.get("status") != "live":
+        failures.append(f"❌ كل وثيقة في manifest يجب أن تكون live: {path}")
+    if not (REPO_ROOT / path).is_file():
+        failures.append(f"❌ وثيقة manifest مفقودة: {path}")
+    return path, role if isinstance(role, str) else ""
+
+
+def _check_required_manifest_documents(entries: list[tuple[str, str]], failures: list[str]) -> None:
     required = {
         "README.md",
         "docs/START_HERE.md",
@@ -109,6 +113,20 @@ def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
     actual = {path for path, _ in entries}
     for path in sorted(required - actual):
         failures.append(f"❌ وثيقة حية إلزامية غير مسجلة في manifest: {path}")
+
+
+def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
+    payload = _load_manifest(failures)
+    if not payload:
+        return []
+    documents = _validate_manifest_shape(payload, failures)
+    entries: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for entry in documents:
+        validated = _validate_manifest_entry(entry, seen, failures)
+        if validated is not None:
+            entries.append(validated)
+    _check_required_manifest_documents(entries, failures)
     return entries
 
 
@@ -135,43 +153,50 @@ def _scan_documents(entries: list[tuple[str, str]]) -> list[tuple[str, str]]:
     return sorted(paths.items())
 
 
+def _stale_text_failures(rel_path: str, text: str) -> list[str]:
+    if rel_path == "docs/DOCUMENTATION_CONTRACT.md":
+        return []
+    if rel_path in {
+        "docs/governance/SOURCE_ADOPTION_MATRIX.md",
+        "docs/research/ALL_GITHUB_SOURCES_INVENTORY.md",
+    }:
+        return []
+    return [
+        f"❌ {rel_path}: {reason} — وُجد {pattern!r}"
+        for pattern, reason in _STALE_PATTERNS
+        if pattern in text
+    ]
+
+
+def _local_link_failures(rel_path: str, document: Path, text: str) -> list[str]:
+    failures: list[str] = []
+    for raw_target in sorted(set(_LINK.findall(text))):
+        if not _is_local_target(raw_target):
+            continue
+        target = _target_path(document, raw_target)
+        if target.exists():
+            continue
+        try:
+            display_target = target.relative_to(REPO_ROOT)
+        except ValueError:
+            display_target = target
+        failures.append(
+            f"❌ {rel_path}: رابط محلي مكسور {raw_target!r} "
+            f"(المسار المحلّل: {display_target})"
+        )
+    return failures
+
+
 def _check_links_and_stale_text(
     entries: list[tuple[str, str]], failures: list[str]
 ) -> None:
-    for rel_path, role in _scan_documents(entries):
+    for rel_path, _ in _scan_documents(entries):
         document = REPO_ROOT / rel_path
         if not document.is_file() or document.suffix.lower() != ".md":
             continue
-        # The contract documents forbidden examples so agents can recognize them;
-        # those examples are policy text, not operational instructions to follow.
-        scan_for_stale_text = rel_path != "docs/DOCUMENTATION_CONTRACT.md"
-        # These two files are immutable source inventories. Their historical URLs
-        # are data under review, not clone instructions; operational docs must not
-        # use them as a source of truth.
-        scan_for_stale_text = scan_for_stale_text and rel_path not in {
-            "docs/governance/SOURCE_ADOPTION_MATRIX.md",
-            "docs/research/ALL_GITHUB_SOURCES_INVENTORY.md",
-        }
         text = _read(document)
-        if scan_for_stale_text:
-            for pattern, reason in _STALE_PATTERNS:
-                if pattern in text:
-                    failures.append(f"❌ {rel_path}: {reason} — وُجد {pattern!r}")
-        # Every document discovered by the manifest scope is checked. The archive
-        # is excluded by an explicit manifest rule rather than by a hidden bypass.
-        for raw_target in sorted(set(_LINK.findall(text))):
-            if not _is_local_target(raw_target):
-                continue
-            target = _target_path(document, raw_target)
-            if not target.exists():
-                try:
-                    display_target = target.relative_to(REPO_ROOT)
-                except ValueError:
-                    display_target = target
-                failures.append(
-                    f"❌ {rel_path}: رابط محلي مكسور {raw_target!r} "
-                    f"(المسار المحلّل: {display_target})"
-                )
+        failures.extend(_stale_text_failures(rel_path, text))
+        failures.extend(_local_link_failures(rel_path, document, text))
 
 
 def _check_branch_protection_policy(failures: list[str]) -> None:
