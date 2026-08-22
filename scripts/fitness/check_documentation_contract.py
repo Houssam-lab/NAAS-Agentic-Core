@@ -199,21 +199,25 @@ def _check_links_and_stale_text(
         failures.extend(_local_link_failures(rel_path, document, text))
 
 
-def _check_branch_protection_policy(failures: list[str]) -> None:
-    """تحقق من السياسة المرغوبة محليًا؛ الحالة الحية تُراجع خارج المستودع بصلاحية الإدارة."""
+def _load_branch_policy(failures: list[str]) -> dict:
     if not BRANCH_POLICY.is_file():
         failures.append("❌ سياسة حماية main مفقودة: .github/branch-protection-policy.json")
-        return
+        return {}
     try:
         policy = json.loads(_read(BRANCH_POLICY))
     except json.JSONDecodeError as error:
         failures.append(f"❌ سياسة حماية main غير صالحة JSON: {error}")
-        return
-    required = set(policy.get("required_status_checks", {}).get("contexts", []))
+        return {}
+    return policy if isinstance(policy, dict) else {}
+
+
+def _branch_policy_checks(policy: dict) -> dict[str, bool]:
+    statuses = policy.get("required_status_checks", {})
     reviews = policy.get("required_pull_request_reviews", {})
-    checks = {
+    required = set(statuses.get("contexts", []))
+    return {
         "branch": policy.get("branch") == "main",
-        "strict_status_checks": policy.get("required_status_checks", {}).get("strict") is True,
+        "strict_status_checks": statuses.get("strict") is True,
         "required_ci": "required-ci" in required,
         "doc_integrity": "doc-integrity" in required,
         "enforce_admins": policy.get("enforce_admins") is True,
@@ -226,41 +230,55 @@ def _check_branch_protection_policy(failures: list[str]) -> None:
         "no_deletions": policy.get("allow_deletions") is False,
         "conversation_resolution": policy.get("required_conversation_resolution") is True,
     }
-    for name, valid in checks.items():
+
+
+def _check_codeowners(failures: list[str]) -> None:
+    if not CODEOWNERS.is_file():
+        failures.append("❌ CODEOWNERS مفقود؛ لا توجد مراجعة ملكية للحوكمة.")
+        return
+    owners = _read(CODEOWNERS)
+    for path in ("/docs/", "/scripts/", "/.github/"):
+        if path not in owners:
+            failures.append(f"❌ CODEOWNERS لا يملك نطاق الحوكمة: {path}")
+
+
+def _check_branch_protection_policy(failures: list[str]) -> None:
+    """تحقق من السياسة المرغوبة محليًا؛ الحالة الحية تُراجع خارج المستودع بصلاحية الإدارة."""
+    policy = _load_branch_policy(failures)
+    for name, valid in _branch_policy_checks(policy).items():
         if not valid:
             failures.append(f"❌ سياسة حماية main غير مكتملة: {name}")
-    if CODEOWNERS.is_file():
-        owners = _read(CODEOWNERS)
-        for path in ("/docs/", "/scripts/", "/.github/"):
-            if path not in owners:
-                failures.append(f"❌ CODEOWNERS لا يملك نطاق الحوكمة: {path}")
-    else:
-        failures.append("❌ CODEOWNERS مفقود؛ لا توجد مراجعة ملكية للحوكمة.")
+    _check_codeowners(failures)
 
 
-def _check_executable_truth(failures: list[str]) -> None:
-    makefile = _read(MAKEFILE)
-    workflow = _read(CI_WORKFLOW)
-    doc_workflow = _read(DOC_WORKFLOW)
-
+def _check_make_truth(makefile: str, failures: list[str]) -> None:
     if "test:" not in makefile or "--cov=app" not in makefile:
         failures.append("❌ Makefile لا يثبت أن make test يقيس نطاق app.")
     if "--cov-fail-under=73" not in makefile:
         failures.append("❌ Makefile لا يثبت حد التغطية التنفيذي 73.")
+
+
+def _check_ci_wiring(workflow: str, doc_workflow: str, failures: list[str]) -> None:
     if "--cov-fail-under=73" not in workflow:
         failures.append("❌ CI لا يثبت حد التغطية التنفيذي 73.")
     if "check_documentation_contract.py" not in workflow:
         failures.append("❌ بوابة التوثيق غير مربوطة بمسار required-ci.")
     guardrails_start = workflow.find("  guardrails:")
     required_start = workflow.find("  required-ci:")
-    if guardrails_start < 0 or "check_documentation_contract.py" not in workflow[guardrails_start:]:
+    guardrails_text = workflow[guardrails_start:required_start if required_start >= 0 else None]
+    if guardrails_start < 0 or "check_documentation_contract.py" not in guardrails_text:
         failures.append("❌ عقد التوثيق ليس خطوة داخل job guardrails.")
     if required_start < 0 or "guardrails," not in workflow[required_start:]:
         failures.append("❌ required-ci لا يعتمد صراحة على guardrails؛ يمكن أن يمر التوثيق منفصلًا.")
-    if "set -euo pipefail" not in workflow[guardrails_start:required_start if required_start >= 0 else None]:
+    if "set -euo pipefail" not in guardrails_text:
         failures.append("❌ guardrails لا يعمل في وضع fail-closed (set -euo pipefail مفقود).")
     if "check_documentation_contract.py" not in doc_workflow:
         failures.append("❌ بوابة doc-integrity لا تشغّل عقد التوثيق.")
+    if "continue-on-error: true" in doc_workflow:
+        failures.append("❌ بوابة doc-integrity تحتوي continue-on-error؛ لا يسمح بالتجاوز الصامت.")
+
+
+def _check_documentation_references(failures: list[str]) -> None:
     index = _read(REPO_ROOT / "docs/DOCUMENTATION_INDEX.md")
     agents = _read(REPO_ROOT / "AGENTS.md")
     contributing = _read(REPO_ROOT / "CONTRIBUTING.md")
@@ -270,8 +288,15 @@ def _check_executable_truth(failures: list[str]) -> None:
         failures.append("❌ AGENTS.md لا يفرض عقد التوثيق على الوكلاء.")
     if "check_documentation_contract.py" not in contributing:
         failures.append("❌ CONTRIBUTING.md لا يطلب فحص عقد التوثيق.")
-    if "continue-on-error: true" in doc_workflow:
-        failures.append("❌ بوابة doc-integrity تحتوي continue-on-error؛ لا يسمح بالتجاوز الصامت.")
+
+
+def _check_executable_truth(failures: list[str]) -> None:
+    makefile = _read(MAKEFILE)
+    workflow = _read(CI_WORKFLOW)
+    doc_workflow = _read(DOC_WORKFLOW)
+    _check_make_truth(makefile, failures)
+    _check_ci_wiring(workflow, doc_workflow, failures)
+    _check_documentation_references(failures)
 
 
 def main() -> int:

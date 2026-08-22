@@ -361,14 +361,9 @@
   "git_change_snapshot": {
     "base_ref": "WORKTREE",
     "changed_paths_excluding_packet": [
-      ".github/workflows/qodana_code_quality.yml",
-      ".memory/code_quality_truth.md",
-      ".qodana/baseline.sarif.json",
-      "pr_body_v4.md",
-      "qodana.yaml",
       "scripts/fitness/check_documentation_contract.py"
     ],
-    "content_sha256_excluding_packet": "b5086e43e0b48184bd05c3a05bbb143f1e2392d831f14c2218469feea650ae53",
+    "content_sha256_excluding_packet": "18233499f7c690dd2af78b18e495bd576ab8560967a19b2bb657535f949b005b",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
