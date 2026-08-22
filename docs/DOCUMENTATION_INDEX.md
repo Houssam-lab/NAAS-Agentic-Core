@@ -24,7 +24,8 @@
 
 | ملف | الدور |
 |-----|------|
-| [`START_HERE.md`](START_HERE.md) | نقطة البداية للمطورين الجدد |
+| [`START_HERE.md`](START_HERE.md) | نقطة البداية الوحيدة للمطورين الجدد — المسار التشغيلي الحي |
+| [`DOCUMENTATION_CONTRACT.md`](DOCUMENTATION_CONTRACT.md) · [`DOCUMENTATION_MANIFEST.json`](DOCUMENTATION_MANIFEST.json) | عقد التوثيق الحي وبيانه الآلي؛ الفشل في بوابته يمنع الدمج |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | نظرة معمارية مبسطة (التفصيل الحيّ: CLAUDE.md §3) |
 | [`REPOSITORY_MAP.md`](REPOSITORY_MAP.md) | خريطة المستودع |
 | [`guides/BEGINNER_GUIDE.md`](guides/BEGINNER_GUIDE.md) · [`guides/NEWCOMER_CODEBASE_MAP.md`](guides/NEWCOMER_CODEBASE_MAP.md) | أدلة المبتدئين |
@@ -36,7 +37,7 @@
 |-----|------|
 | [`architecture/MICROSERVICES_CONSTITUTION.md`](architecture/MICROSERVICES_CONSTITUTION.md) | ⚖️ الدستور المعماري (عربي) |
 | [`architecture/PRINCIPLES.md`](architecture/PRINCIPLES.md) | المبادئ المعمارية |
-| [`adr/`](adr/) | سجلّات ADR (القرارات الحيّة في `.memory/decisions.md`) |
+| [`adr/`](adr/) | سجلّات ADR (القرارات الحيّة في `.memory/decisions.md`)، ومنها [`ADR-016-live-documentation-contract.md`](adr/ADR-016-live-documentation-contract.md) لعقد التوثيق |
 | [`architecture/`](architecture/) (runbooks: `MASTER_CUTOVER_RUNBOOK` · `PR1..PR5` · `LEGACY_*`) | كتيّبات هجرة الـ strangler-fig |
 | [`architecture/ENGINEERING_DOCTRINE.md`](architecture/ENGINEERING_DOCTRINE.md) | ⚖️ عقيدة الهندسة — البحر الكامل مربوطاً بفارضٍ آلي؛ كل قانون يُسمّي بوّابته (محروسة: بوّابة غير موجودة ⇒ CI أحمر) |
 | [`architecture/CS_KNOWLEDGE_MAP.md`](architecture/CS_KNOWLEDGE_MAP.md) | 🗺️ خريطة علوم الحاسوب ↔ المشروع — عشرون مجالاً بحالةٍ ودليلٍ ملفّي، تحرسها `check_cs_knowledge_map` (D-207) |
@@ -104,7 +105,9 @@
 
 ---
 
-## قواعد الإضافة (ملزِمة — تحرسها بوّابة `doc-integrity`)
+## قواعد الإضافة (ملزِمة — تحرسها بوابة `doc-integrity`)
+
+العقد التفصيلي لهذه القواعد هو [`DOCUMENTATION_CONTRACT.md`](DOCUMENTATION_CONTRACT.md)، ونطاق الوثائق الحية القابلة للفحص هو [`DOCUMENTATION_MANIFEST.json`](DOCUMENTATION_MANIFEST.json). أي ملف تشغيلي جديد يحتاج إدخالًا صريحًا في البيان، وإلا يفشل `check_documentation_contract.py`.
 
 1. معلومة تشغيلية قصيرة ⇒ `.memory/*.md` — **لا ملف MD جديد في `docs/`**.
 2. قرار معماري ⇒ `.memory/decisions.md` + قسم CLAUDE.md §6.x.

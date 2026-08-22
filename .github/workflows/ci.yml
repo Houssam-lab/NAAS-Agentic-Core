@@ -146,6 +146,14 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
+      - name: Documentation contract (mandatory)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Live documentation is part of the required acceptance surface.
+          # A documentation failure must fail required-ci, not merely annotate a PR.
+          python scripts/fitness/check_documentation_contract.py
+
       - name: Run architectural guardrails
         shell: bash
         run: |

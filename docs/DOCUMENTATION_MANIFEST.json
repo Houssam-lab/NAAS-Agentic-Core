@@ -1,0 +1,70 @@
+{
+  "$schema_version": "1",
+  "purpose": "Machine-readable manifest for current, operational documentation.",
+  "source_of_truth": "docs/DOCUMENTATION_CONTRACT.md",
+  "documents": [
+    {
+      "path": "README.md",
+      "audience": "all",
+      "role": "project-overview",
+      "authority": "primary",
+      "status": "live"
+    },
+    {
+      "path": "README.ar.md",
+      "audience": "all",
+      "role": "project-overview-arabic",
+      "authority": "primary",
+      "status": "live"
+    },
+    {
+      "path": "docs/START_HERE.md",
+      "audience": "new-contributor",
+      "role": "onboarding",
+      "authority": "primary",
+      "status": "live"
+    },
+    {
+      "path": "docs/guides/NEWCOMER_CODEBASE_MAP.md",
+      "audience": "new-contributor",
+      "role": "codebase-orientation",
+      "authority": "supporting",
+      "status": "live"
+    },
+    {
+      "path": "docs/quality/testing.md",
+      "audience": "contributor",
+      "role": "testing",
+      "authority": "primary",
+      "status": "live"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "audience": "contributor",
+      "role": "contribution",
+      "authority": "primary",
+      "status": "live"
+    },
+    {
+      "path": "AGENTS.md",
+      "audience": "coding-agent",
+      "role": "agent-policy",
+      "authority": "primary",
+      "status": "live"
+    },
+    {
+      "path": "docs/DOCUMENTATION_INDEX.md",
+      "audience": "all",
+      "role": "documentation-navigation",
+      "authority": "primary",
+      "status": "live"
+    },
+    {
+      "path": "docs/DOCUMENTATION_CONTRACT.md",
+      "audience": "all",
+      "role": "documentation-policy",
+      "authority": "primary",
+      "status": "live"
+    }
+  ]
+}
