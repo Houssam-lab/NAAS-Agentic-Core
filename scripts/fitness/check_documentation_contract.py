@@ -18,6 +18,8 @@ MANIFEST = REPO_ROOT / "docs/DOCUMENTATION_MANIFEST.json"
 MAKEFILE = REPO_ROOT / "Makefile"
 CI_WORKFLOW = REPO_ROOT / ".github/workflows/ci.yml"
 DOC_WORKFLOW = REPO_ROOT / ".github/workflows/doc_integrity.yml"
+BRANCH_POLICY = REPO_ROOT / ".github/branch-protection-policy.json"
+CODEOWNERS = REPO_ROOT / ".github/CODEOWNERS"
 
 _LINK = re.compile(r"\]\(([^)]+)\)")
 _STALE_PATTERNS: tuple[tuple[str, str], ...] = (
@@ -172,6 +174,45 @@ def _check_links_and_stale_text(
                 )
 
 
+def _check_branch_protection_policy(failures: list[str]) -> None:
+    """تحقق من السياسة المرغوبة محليًا؛ الحالة الحية تُراجع خارج المستودع بصلاحية الإدارة."""
+    if not BRANCH_POLICY.is_file():
+        failures.append("❌ سياسة حماية main مفقودة: .github/branch-protection-policy.json")
+        return
+    try:
+        policy = json.loads(_read(BRANCH_POLICY))
+    except json.JSONDecodeError as error:
+        failures.append(f"❌ سياسة حماية main غير صالحة JSON: {error}")
+        return
+    required = set(policy.get("required_status_checks", {}).get("contexts", []))
+    reviews = policy.get("required_pull_request_reviews", {})
+    checks = {
+        "branch": policy.get("branch") == "main",
+        "strict_status_checks": policy.get("required_status_checks", {}).get("strict") is True,
+        "required_ci": "required-ci" in required,
+        "doc_integrity": "doc-integrity" in required,
+        "enforce_admins": policy.get("enforce_admins") is True,
+        "one_approval": reviews.get("required_approving_review_count", 0) >= 1,
+        "codeowners": reviews.get("require_code_owner_reviews") is True,
+        "last_push_approval": reviews.get("require_last_push_approval") is True,
+        "dismiss_stale": reviews.get("dismiss_stale_reviews") is True,
+        "linear_history": policy.get("required_linear_history") is True,
+        "no_force_pushes": policy.get("allow_force_pushes") is False,
+        "no_deletions": policy.get("allow_deletions") is False,
+        "conversation_resolution": policy.get("required_conversation_resolution") is True,
+    }
+    for name, valid in checks.items():
+        if not valid:
+            failures.append(f"❌ سياسة حماية main غير مكتملة: {name}")
+    if CODEOWNERS.is_file():
+        owners = _read(CODEOWNERS)
+        for path in ("/docs/", "/scripts/", "/.github/"):
+            if path not in owners:
+                failures.append(f"❌ CODEOWNERS لا يملك نطاق الحوكمة: {path}")
+    else:
+        failures.append("❌ CODEOWNERS مفقود؛ لا توجد مراجعة ملكية للحوكمة.")
+
+
 def _check_executable_truth(failures: list[str]) -> None:
     makefile = _read(MAKEFILE)
     workflow = _read(CI_WORKFLOW)
@@ -212,6 +253,7 @@ def main() -> int:
     failures: list[str] = []
     entries = _check_manifest(failures)
     _check_links_and_stale_text(entries, failures)
+    _check_branch_protection_policy(failures)
     _check_executable_truth(failures)
 
     if failures:

@@ -218,6 +218,13 @@
       "role": "ci-verification",
       "authority": "supporting",
       "status": "live"
+    },
+    {
+      "path": "docs/governance/NO_BYPASS_CONTROL_PLANE.md",
+      "audience": "maintainer",
+      "role": "no-bypass-control-plane",
+      "authority": "primary",
+      "status": "live"
     }
   ]
 }

@@ -361,9 +361,14 @@
   "git_change_snapshot": {
     "base_ref": "WORKTREE",
     "changed_paths_excluding_packet": [
-      "docs/DOCUMENTATION_INDEX.md"
+      ".github/CODEOWNERS",
+      ".github/branch-protection-policy.json",
+      "docs/DOCUMENTATION_INDEX.md",
+      "docs/DOCUMENTATION_MANIFEST.json",
+      "docs/governance/NO_BYPASS_CONTROL_PLANE.md",
+      "scripts/fitness/check_documentation_contract.py"
     ],
-    "content_sha256_excluding_packet": "34078f9c785d7abc322d5289660da469c56afe4db05529162cc98d7e3c7a7a0a",
+    "content_sha256_excluding_packet": "c623237569cf7c009c89ae571829c86c90973a0894a636bfb3a76e800d8d6266",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
