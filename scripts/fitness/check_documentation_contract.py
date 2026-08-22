@@ -60,6 +60,9 @@ def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
     if not isinstance(documents, list) or not documents:
         failures.append("❌ manifest يجب أن يحتوي على قائمة documents غير فارغة.")
         return []
+    for field in ("scan_globs", "exclude_globs"):
+        if not isinstance(payload.get(field), list) or not payload[field]:
+            failures.append(f"❌ manifest يجب أن يعلن قائمة {field} غير فارغة.")
 
     entries: list[tuple[str, str]] = []
     seen: set[str] = set()
@@ -69,9 +72,19 @@ def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
             continue
         path = entry.get("path")
         status = entry.get("status")
+        role = entry.get("role")
+        audience = entry.get("audience")
+        authority = entry.get("authority")
         if not isinstance(path, str) or not path:
             failures.append("❌ عنصر manifest بلا path صالح.")
             continue
+        path_object = Path(path)
+        if path_object.is_absolute() or ".." in path_object.parts:
+            failures.append(f"❌ مسار manifest خارج جذر المستودع: {path}")
+        if not all(isinstance(value, str) and value.strip() for value in (role, audience)):
+            failures.append(f"❌ وثيقة manifest بلا audience/role موصوفين: {path}")
+        if authority not in {"primary", "supporting"}:
+            failures.append(f"❌ وثيقة manifest بلا authority معتمد (primary/supporting): {path}")
         if path in seen:
             failures.append(f"❌ المسار مكرر في manifest: {path}")
         seen.add(path)
@@ -80,7 +93,7 @@ def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
         absolute = REPO_ROOT / path
         if not absolute.is_file():
             failures.append(f"❌ وثيقة manifest مفقودة: {path}")
-        entries.append((path, entry.get("role", "")))
+        entries.append((path, role if isinstance(role, str) else ""))
 
     required = {
         "README.md",
@@ -97,29 +110,65 @@ def _check_manifest(failures: list[str]) -> list[tuple[str, str]]:
     return entries
 
 
+def _scan_documents(entries: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """يوسّع نطاق البيان إلى كل الوثائق الحية المعلنة في scan_globs."""
+    paths: dict[str, str] = {path: role for path, role in entries}
+    try:
+        payload = json.loads(_read(MANIFEST))
+    except json.JSONDecodeError:
+        return entries
+    excludes = tuple(str(item) for item in payload.get("exclude_globs", []))
+    for pattern in payload.get("scan_globs", []):
+        for document in REPO_ROOT.glob(str(pattern)):
+            if not document.is_file() or document.suffix.lower() != ".md":
+                continue
+            relative = str(document.relative_to(REPO_ROOT))
+            if any(
+                (exclude.endswith("/**") and relative.startswith(exclude[:-3].rstrip("/") + "/"))
+                or Path(relative).match(exclude)
+                for exclude in excludes
+            ):
+                continue
+            paths.setdefault(relative, "scan")
+    return sorted(paths.items())
+
+
 def _check_links_and_stale_text(
     entries: list[tuple[str, str]], failures: list[str]
 ) -> None:
-    for rel_path, _ in entries:
+    for rel_path, role in _scan_documents(entries):
         document = REPO_ROOT / rel_path
         if not document.is_file() or document.suffix.lower() != ".md":
             continue
         # The contract documents forbidden examples so agents can recognize them;
         # those examples are policy text, not operational instructions to follow.
         scan_for_stale_text = rel_path != "docs/DOCUMENTATION_CONTRACT.md"
+        # These two files are immutable source inventories. Their historical URLs
+        # are data under review, not clone instructions; operational docs must not
+        # use them as a source of truth.
+        scan_for_stale_text = scan_for_stale_text and rel_path not in {
+            "docs/governance/SOURCE_ADOPTION_MATRIX.md",
+            "docs/research/ALL_GITHUB_SOURCES_INVENTORY.md",
+        }
         text = _read(document)
         if scan_for_stale_text:
             for pattern, reason in _STALE_PATTERNS:
                 if pattern in text:
                     failures.append(f"❌ {rel_path}: {reason} — وُجد {pattern!r}")
+        # Every document discovered by the manifest scope is checked. The archive
+        # is excluded by an explicit manifest rule rather than by a hidden bypass.
         for raw_target in sorted(set(_LINK.findall(text))):
             if not _is_local_target(raw_target):
                 continue
             target = _target_path(document, raw_target)
             if not target.exists():
+                try:
+                    display_target = target.relative_to(REPO_ROOT)
+                except ValueError:
+                    display_target = target
                 failures.append(
                     f"❌ {rel_path}: رابط محلي مكسور {raw_target!r} "
-                    f"(المسار المحلّل: {target.relative_to(REPO_ROOT)})"
+                    f"(المسار المحلّل: {display_target})"
                 )
 
 
@@ -136,6 +185,14 @@ def _check_executable_truth(failures: list[str]) -> None:
         failures.append("❌ CI لا يثبت حد التغطية التنفيذي 73.")
     if "check_documentation_contract.py" not in workflow:
         failures.append("❌ بوابة التوثيق غير مربوطة بمسار required-ci.")
+    guardrails_start = workflow.find("  guardrails:")
+    required_start = workflow.find("  required-ci:")
+    if guardrails_start < 0 or "check_documentation_contract.py" not in workflow[guardrails_start:]:
+        failures.append("❌ عقد التوثيق ليس خطوة داخل job guardrails.")
+    if required_start < 0 or "guardrails," not in workflow[required_start:]:
+        failures.append("❌ required-ci لا يعتمد صراحة على guardrails؛ يمكن أن يمر التوثيق منفصلًا.")
+    if "set -euo pipefail" not in workflow[guardrails_start:required_start if required_start >= 0 else None]:
+        failures.append("❌ guardrails لا يعمل في وضع fail-closed (set -euo pipefail مفقود).")
     if "check_documentation_contract.py" not in doc_workflow:
         failures.append("❌ بوابة doc-integrity لا تشغّل عقد التوثيق.")
     index = _read(REPO_ROOT / "docs/DOCUMENTATION_INDEX.md")
