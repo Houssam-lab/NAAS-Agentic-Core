@@ -291,11 +291,14 @@ def _check_make_truth(makefile: str, failures: list[str]) -> None:
         failures.append("❌ Makefile لا يثبت حد التغطية التنفيذي 73.")
 
 
-def _check_ci_wiring(workflow: str, doc_workflow: str, failures: list[str]) -> None:
+def _check_ci_coverage(workflow: str, failures: list[str]) -> None:
     if "--cov-fail-under=73" not in workflow:
         failures.append("❌ CI لا يثبت حد التغطية التنفيذي 73.")
     if "check_documentation_contract.py" not in workflow:
         failures.append("❌ بوابة التوثيق غير مربوطة بمسار required-ci.")
+
+
+def _check_guardrails_wiring(workflow: str, failures: list[str]) -> None:
     guardrails_start = workflow.find("  guardrails:")
     required_start = workflow.find("  required-ci:")
     guardrails_text = workflow[guardrails_start:required_start if required_start >= 0 else None]
@@ -305,10 +308,19 @@ def _check_ci_wiring(workflow: str, doc_workflow: str, failures: list[str]) -> N
         failures.append("❌ required-ci لا يعتمد صراحة على guardrails؛ يمكن أن يمر التوثيق منفصلًا.")
     if "set -euo pipefail" not in guardrails_text:
         failures.append("❌ guardrails لا يعمل في وضع fail-closed (set -euo pipefail مفقود).")
+
+
+def _check_doc_workflow(doc_workflow: str, failures: list[str]) -> None:
     if "check_documentation_contract.py" not in doc_workflow:
         failures.append("❌ بوابة doc-integrity لا تشغّل عقد التوثيق.")
     if "continue-on-error: true" in doc_workflow:
         failures.append("❌ بوابة doc-integrity تحتوي continue-on-error؛ لا يسمح بالتجاوز الصامت.")
+
+
+def _check_ci_wiring(workflow: str, doc_workflow: str, failures: list[str]) -> None:
+    _check_ci_coverage(workflow, failures)
+    _check_guardrails_wiring(workflow, failures)
+    _check_doc_workflow(doc_workflow, failures)
 
 
 def _check_documentation_references(failures: list[str]) -> None:
