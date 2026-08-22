@@ -402,6 +402,8 @@
       "docs/contracts/README.md",
       "docs/governance/NEGATIVE_PROOFS.json",
       "docs/governance/NO_BYPASS_CONTROL_PLANE.md",
+      "docs/governance/SOURCE_ADOPTION_MATRIX.json",
+      "docs/governance/SOURCE_ADOPTION_MATRIX.md",
       "docs/grant-program/toolkit/INCIDENT_LOG_TEMPLATE.md",
       "docs/grant-program/toolkit/RISK_SCREENING_CHECKLIST.md",
       "docs/grant-program/toolkit/START_HERE.md",
@@ -410,6 +412,8 @@
       "docs/guides/CODESPACES_TEST_GUIDE.md",
       "docs/guides/SIMPLIFICATION_GUIDE.md",
       "docs/quality/testing.md",
+      "docs/research/ALL_GITHUB_SOURCES_INVENTORY.json",
+      "docs/research/ALL_GITHUB_SOURCES_INVENTORY.md",
       "microservices/README.md",
       "pyproject.toml",
       "qodana.yaml",
@@ -435,7 +439,7 @@
       "tests/core/test_d177_rate_limit_resilience.py",
       "tests/fitness/test_documentation_contract_gate.py"
     ],
-    "content_sha256_excluding_packet": "afbbfc888d4348e10bbb850369dab3b98405f38680c0d44e21b5101d973ff7d4",
+    "content_sha256_excluding_packet": "c79fee295b6cf34ef7552feb2499e4e2e2b69276cc14e476b3d7b74e123a5e54",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
