@@ -21,21 +21,79 @@ OUTPUT_JSON = ROOT / "docs/governance/SOURCE_ADOPTION_MATRIX.json"
 OUTPUT_MD = ROOT / "docs/governance/SOURCE_ADOPTION_MATRIX.md"
 
 BACKBONE_APPLICATIONS: dict[str, dict[str, object]] = {
-    "developer-roadmap": {"application_ar": "خارطة مسارات التعلم والتبعيات في onboarding وخريطة علوم الحاسوب.", "evidence": ["docs/architecture/CS_KNOWLEDGE_MAP.md", "docs/START_HERE.md"]},
-    "coding-interview-university": {"application_ar": "تقوية الخوارزميات وهياكل البيانات والتفكير التحليلي قبل القرارات ذات الحمل العالي.", "evidence": ["app/core/foundations", "tests"]},
-    "the-algorithms-python": {"application_ar": "مرجع تنفيذ ومقارنة؛ لا تدخل خوارزمية المنتج دون اختبار محلي وملكية واضحة.", "evidence": ["app/core/foundations", "tests"]},
-    "system-design-primer": {"application_ar": "مراجعة التوسع والاتساق والتوافر وحدود الفشل والقرارات المعمارية.", "evidence": ["docs/architecture", "docs/contracts"]},
-    "system-design-101": {"application_ar": "تدقيق تدفقات البروتوكولات والرسوم المعمارية لتقليل سوء الفهم بين الفرق والوكلاء.", "evidence": ["docs/architecture", "docs/contracts"]},
-    "build-your-own-x": {"application_ar": "تجارب تعليمية معزولة لفهم البروتوكولات والأنظمة الأساسية دون إدخال تجارب غير ناضجة للإنتاج.", "evidence": ["docs/research/authoritative-foundations.md", "docs/architecture/EXTENSION_SEAMS.md"]},
-    "clean-code-javascript": {"application_ar": "مراجعات جودة الواجهة وتقليل التعقيد مع احترام عقود المنتج.", "evidence": ["frontend", ".pre-commit-config.yaml"]},
-    "clean-code-book": {"application_ar": "مرجع حرفية ومناقشة للصيانة؛ لا يتحول إلى قانون منفصل عن الفوارض المحلية.", "evidence": ["docs/quality/standards.md"]},
-    "freecodecamp": {"application_ar": "مسار تأسيسي ومراجع onboarding للمساهمين والمهارات العامة.", "evidence": ["docs/guides", "docs/START_HERE.md"]},
-    "awesome": {"application_ar": "اكتشاف خيارات فقط؛ كل خيار يمر بتقييم أمني ومعماري مستقل.", "evidence": ["docs/research/authoritative-foundations.md", "docs/commercial/OFFER_CATALOG.json"]},
-    "free-programming-books": {"application_ar": "مكتبة تعلم متعددة اللغات لتغطية فجوات المسارات دون تضمين المواد تلقائياً.", "evidence": ["docs/guides", "docs/research"]},
-    "public-apis": {"application_ar": "اكتشاف تكاملات محتملة؛ لا API خارجي يُفعّل بلا عقد وخصوصية ومراقبة.", "evidence": ["docs/commercial/OFFER_CATALOG.json", "docs/contracts"]},
-    "browser-use": {"application_ar": "مرجع بحثي لتفاعل الوكلاء مع المتصفح؛ يبقى خلف الهوية والصلاحيات والموافقة والعزل.", "evidence": ["SECURITY.md", "docs/architecture/AGENTIC_ORCHESTRATION_DOCTRINE.md"]},
-    "llms-from-scratch": {"application_ar": "فهم بنية النماذج وحدودها وكلفتها؛ لا يقرر الحقيقة أو الأرقام.", "evidence": ["shared/ai_models/model_chain.py", "docs/architecture/AGENTIC_DESIGN_PRINCIPLES.md"]},
-    "awesome-claude-skills": {"application_ar": "استكشاف أنماط المهارات؛ كل مهارة محلية تحتاج عقداً وقياساً وفارضاً.", "evidence": [".claude/skills", "docs/governance/AGENT_SKILLS.json", "scripts/fitness/check_agent_skills_spec.py"]},
+    "developer-roadmap": {
+        "application_ar": "خارطة مسارات التعلم والتبعيات في onboarding وخريطة علوم الحاسوب.",
+        "evidence": ["docs/architecture/CS_KNOWLEDGE_MAP.md", "docs/START_HERE.md"],
+    },
+    "coding-interview-university": {
+        "application_ar": "تقوية الخوارزميات وهياكل البيانات والتفكير التحليلي قبل القرارات ذات الحمل العالي.",
+        "evidence": ["app/core/foundations", "tests"],
+    },
+    "the-algorithms-python": {
+        "application_ar": "مرجع تنفيذ ومقارنة؛ لا تدخل خوارزمية المنتج دون اختبار محلي وملكية واضحة.",
+        "evidence": ["app/core/foundations", "tests"],
+    },
+    "system-design-primer": {
+        "application_ar": "مراجعة التوسع والاتساق والتوافر وحدود الفشل والقرارات المعمارية.",
+        "evidence": ["docs/architecture", "docs/contracts"],
+    },
+    "system-design-101": {
+        "application_ar": "تدقيق تدفقات البروتوكولات والرسوم المعمارية لتقليل سوء الفهم بين الفرق والوكلاء.",
+        "evidence": ["docs/architecture", "docs/contracts"],
+    },
+    "build-your-own-x": {
+        "application_ar": "تجارب تعليمية معزولة لفهم البروتوكولات والأنظمة الأساسية دون إدخال تجارب غير ناضجة للإنتاج.",
+        "evidence": [
+            "docs/research/authoritative-foundations.md",
+            "docs/architecture/EXTENSION_SEAMS.md",
+        ],
+    },
+    "clean-code-javascript": {
+        "application_ar": "مراجعات جودة الواجهة وتقليل التعقيد مع احترام عقود المنتج.",
+        "evidence": ["frontend", ".pre-commit-config.yaml"],
+    },
+    "clean-code-book": {
+        "application_ar": "مرجع حرفية ومناقشة للصيانة؛ لا يتحول إلى قانون منفصل عن الفوارض المحلية.",
+        "evidence": ["docs/quality/standards.md"],
+    },
+    "freecodecamp": {
+        "application_ar": "مسار تأسيسي ومراجع onboarding للمساهمين والمهارات العامة.",
+        "evidence": ["docs/guides", "docs/START_HERE.md"],
+    },
+    "awesome": {
+        "application_ar": "اكتشاف خيارات فقط؛ كل خيار يمر بتقييم أمني ومعماري مستقل.",
+        "evidence": [
+            "docs/research/authoritative-foundations.md",
+            "docs/commercial/OFFER_CATALOG.json",
+        ],
+    },
+    "free-programming-books": {
+        "application_ar": "مكتبة تعلم متعددة اللغات لتغطية فجوات المسارات دون تضمين المواد تلقائياً.",
+        "evidence": ["docs/guides", "docs/research"],
+    },
+    "public-apis": {
+        "application_ar": "اكتشاف تكاملات محتملة؛ لا API خارجي يُفعّل بلا عقد وخصوصية ومراقبة.",
+        "evidence": ["docs/commercial/OFFER_CATALOG.json", "docs/contracts"],
+    },
+    "browser-use": {
+        "application_ar": "مرجع بحثي لتفاعل الوكلاء مع المتصفح؛ يبقى خلف الهوية والصلاحيات والموافقة والعزل.",
+        "evidence": ["SECURITY.md", "docs/architecture/AGENTIC_ORCHESTRATION_DOCTRINE.md"],
+    },
+    "llms-from-scratch": {
+        "application_ar": "فهم بنية النماذج وحدودها وكلفتها؛ لا يقرر الحقيقة أو الأرقام.",
+        "evidence": [
+            "shared/ai_models/model_chain.py",
+            "docs/architecture/AGENTIC_DESIGN_PRINCIPLES.md",
+        ],
+    },
+    "awesome-claude-skills": {
+        "application_ar": "استكشاف أنماط المهارات؛ كل مهارة محلية تحتاج عقداً وقياساً وفارضاً.",
+        "evidence": [
+            ".claude/skills",
+            "docs/governance/AGENT_SKILLS.json",
+            "scripts/fitness/check_agent_skills_spec.py",
+        ],
+    },
 }
 
 
@@ -67,7 +125,9 @@ def main() -> None:
                     "source_id": identifier,
                     "status": "MANDATORY_REFERENCE",
                     "purpose_ar": ref["role_ar"],
-                    "application_ar": app.get("application_ar", "يجب أن يملك التطبيق بطاقة محلية قبل التفعيل."),
+                    "application_ar": app.get(
+                        "application_ar", "يجب أن يملك التطبيق بطاقة محلية قبل التفعيل."
+                    ),
                     "local_evidence_paths": app.get("evidence", []),
                     "enforcers": ["check_reference_backbone.py", "check_agent_context.py"],
                     "runtime_allowed": False,
@@ -93,7 +153,11 @@ def main() -> None:
                     "runtime_allowed": status == "ACTIVE",
                     "primary_source_review": "لم يُقرأ الكود" not in str(ref.get("read_ar", "")),
                     "owner": "external-standards-governance",
-                    "upgrade_condition_ar": str(ref.get("upgrade_condition_ar", "الحالة لا تتغير دون قرار مكتوب ومراجعة المصدر.")),
+                    "upgrade_condition_ar": str(
+                        ref.get(
+                            "upgrade_condition_ar", "الحالة لا تتغير دون قرار مكتوب ومراجعة المصدر."
+                        )
+                    ),
                     "occurrences": source["occurrences"],
                 }
             )
@@ -125,12 +189,23 @@ def main() -> None:
             "لا مصدر ACTIVE بلا غرض وتطبيق محلي وفارض ودليل.",
             "لا تغيير حالة دون مراجعة مصدر أولي وقرار مناسب.",
         ],
-        "required_card_fields": ["purpose_ar", "application_ar", "local_evidence_paths", "enforcers", "runtime_allowed", "primary_source_review", "upgrade_condition_ar", "owner"],
+        "required_card_fields": [
+            "purpose_ar",
+            "application_ar",
+            "local_evidence_paths",
+            "enforcers",
+            "runtime_allowed",
+            "primary_source_review",
+            "upgrade_condition_ar",
+            "owner",
+        ],
         "generated_from": "docs/research/ALL_GITHUB_SOURCES_INVENTORY.json",
         "total_sources": len(rows),
         "sources": rows,
     }
-    OUTPUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    OUTPUT_JSON.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
     counts: dict[str, int] = {}
     for row in rows:
@@ -154,14 +229,30 @@ def main() -> None:
         "PENDING_CLASSIFICATION": "Existing URL requiring primary-source understanding before any new use.",
     }
     for status, count in sorted(counts.items()):
-        lines.append(f"| `{status}` | {count} | {descriptions.get(status, 'Governed status; see matrix JSON.')} |")
-    lines.extend(["", "## Sources", "", "| Source | Status | Purpose / current boundary | Local evidence |", "|---|---|---|---|"])
+        lines.append(
+            f"| `{status}` | {count} | {descriptions.get(status, 'Governed status; see matrix JSON.')} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Sources",
+            "",
+            "| Source | Status | Purpose / current boundary | Local evidence |",
+            "|---|---|---|---|",
+        ]
+    )
     for row in rows:
         evidence = ", ".join(f"`{p}`" for p in row["local_evidence_paths"]) or "—"
         purpose = str(row["purpose_ar"]).replace("|", "\\|")
-        lines.append(f"| [{row['url']}]({row['url']}) | `{row['status']}` | {purpose} | {evidence} |")
+        lines.append(
+            f"| [{row['url']}]({row['url']}) | `{row['status']}` | {purpose} | {evidence} |"
+        )
     OUTPUT_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(json.dumps({"total_sources": len(rows), "counts": dict(sorted(counts.items()))}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {"total_sources": len(rows), "counts": dict(sorted(counts.items()))}, ensure_ascii=False
+        )
+    )
 
 
 if __name__ == "__main__":

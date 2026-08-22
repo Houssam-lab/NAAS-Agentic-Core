@@ -361,13 +361,23 @@
   "git_change_snapshot": {
     "base_ref": "WORKTREE",
     "changed_paths_excluding_packet": [
-      "pyproject.toml",
+      "scripts/_add_fx_doctrine.py",
+      "scripts/fitness/check_agent_context.py",
       "scripts/fitness/check_code_acceptance.py",
+      "scripts/fitness/check_deep_tech_constitution.py",
       "scripts/fitness/check_documentation_contract.py",
+      "scripts/fitness/check_dual_track_alignment.py",
+      "scripts/fitness/check_pocock_gates.py",
+      "scripts/fitness/check_source_adoption_matrix.py",
+      "scripts/research/build_curriculum_application_matrix.py",
+      "scripts/research/build_source_adoption_matrix.py",
+      "scripts/research/enrich_acceptance_packet_curriculum.py",
+      "scripts/research/extract_harvard_course_catalog.py",
+      "scripts/research/inventory_github_sources.py",
       "scripts/research/refresh_acceptance_diff_snapshot.py",
-      "test_validate.py"
+      "tests/fitness/test_documentation_contract_gate.py"
     ],
-    "content_sha256_excluding_packet": "61061681f64ce8ab3af0310c21bb881eabfce408bed098052ccc0a7d8fac9f2a",
+    "content_sha256_excluding_packet": "4b5676827e76c57b3846d04685b2501e445584aefaf03ad0b2b9932fa59ca0dc",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }

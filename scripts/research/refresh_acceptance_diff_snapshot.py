@@ -37,7 +37,11 @@ def current_paths() -> list[str]:
             names.update(normalize(line) for line in output.splitlines() if line.strip())
         porcelain = run(["git", "status", "--porcelain=v1", "--untracked-files=all"])
         for line in porcelain.splitlines():
-            if line.startswith("?? ") or (len(line) >= 4 and line[0] in "MADRCU") or (len(line) >= 4 and line[1] in "MADRCU"):
+            if (
+                line.startswith("?? ")
+                or (len(line) >= 4 and line[0] in "MADRCU")
+                or (len(line) >= 4 and line[1] in "MADRCU")
+            ):
                 names.add(normalize(line[3:]))
     return sorted(name for name in names if name)
 
@@ -75,7 +79,17 @@ def main() -> None:
         "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py",
     }
     PACKET.write_text(json.dumps(packet, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"changed_paths_excluding_packet": len(snapshot_paths), "content_sha256_excluding_packet": packet["git_change_snapshot"]["content_sha256_excluding_packet"]}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "changed_paths_excluding_packet": len(snapshot_paths),
+                "content_sha256_excluding_packet": packet["git_change_snapshot"][
+                    "content_sha256_excluding_packet"
+                ],
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -16,13 +16,7 @@ def test_check_documentation_contract_rejects_missing_manifest_document(
     docs.mkdir()
     manifest = docs / "DOCUMENTATION_MANIFEST.json"
     manifest.write_text(
-        json.dumps(
-            {
-                "documents": [
-                    {"path": "docs/missing.md", "status": "live", "role": "test"}
-                ]
-            }
-        ),
+        json.dumps({"documents": [{"path": "docs/missing.md", "status": "live", "role": "test"}]}),
         encoding="utf-8",
     )
     monkeypatch.setattr(gate, "REPO_ROOT", tmp_path)
@@ -71,9 +65,7 @@ def test_check_manifest_rejects_escape_path_and_missing_authority(
     assert len(failures) >= 1
 
 
-def test_check_documentation_contract_rejects_broken_live_link(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_check_documentation_contract_rejects_broken_live_link(tmp_path: Path, monkeypatch) -> None:
     """الرابط المكسور داخل وثيقة حية يجب أن ينتج فشلًا صريحًا."""
     docs = tmp_path / "docs"
     docs.mkdir()

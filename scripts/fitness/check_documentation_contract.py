@@ -218,15 +218,12 @@ def _local_link_failures(rel_path: str, document: Path, text: str) -> list[str]:
         except ValueError:
             display_target = target
         failures.append(
-            f"❌ {rel_path}: رابط محلي مكسور {raw_target!r} "
-            f"(المسار المحلّل: {display_target})"
+            f"❌ {rel_path}: رابط محلي مكسور {raw_target!r} (المسار المحلّل: {display_target})"
         )
     return failures
 
 
-def _check_links_and_stale_text(
-    entries: list[tuple[str, str]], failures: list[str]
-) -> None:
+def _check_links_and_stale_text(entries: list[tuple[str, str]], failures: list[str]) -> None:
     for rel_path, _ in _scan_documents(entries):
         document = REPO_ROOT / rel_path
         if not document.is_file() or document.suffix.lower() != ".md":
@@ -305,7 +302,7 @@ def _check_ci_coverage(workflow: str, failures: list[str]) -> None:
 def _check_guardrails_wiring(workflow: str, failures: list[str]) -> None:
     guardrails_start = workflow.find("  guardrails:")
     required_start = workflow.find("  required-ci:")
-    guardrails_text = workflow[guardrails_start:required_start if required_start >= 0 else None]
+    guardrails_text = workflow[guardrails_start : required_start if required_start >= 0 else None]
     if guardrails_start < 0 or "check_documentation_contract.py" not in guardrails_text:
         failures.append("❌ عقد التوثيق ليس خطوة داخل job guardrails.")
     if required_start < 0 or "guardrails," not in workflow[required_start:]:
@@ -361,8 +358,7 @@ def main() -> int:
         return 1
 
     print(
-        f"✅ عقد التوثيق سليم: {len(entries)} وثائق حية، "
-        "الروابط والمسارات والأوامر الأساسية متسقة."
+        f"✅ عقد التوثيق سليم: {len(entries)} وثائق حية، الروابط والمسارات والأوامر الأساسية متسقة."
     )
     return 0
 

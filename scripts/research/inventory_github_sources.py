@@ -57,7 +57,11 @@ def main() -> None:
 
     occurrences: dict[str, set[str]] = defaultdict(set)
     for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or str(path.relative_to(ROOT)) in GENERATED_ARTIFACTS:
+        if (
+            not path.is_file()
+            or ".git" in path.parts
+            or str(path.relative_to(ROOT)) in GENERATED_ARTIFACTS
+        ):
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
@@ -91,7 +95,9 @@ def main() -> None:
         "counts_by_category": dict(sorted(counts.items())),
         "sources": rows,
     }
-    OUTPUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    OUTPUT_JSON.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
     lines = [
         "# Complete GitHub Repository Source Inventory",
@@ -115,9 +121,19 @@ def main() -> None:
         seen = ", ".join(f"`{path}`" for path in row["occurrences"][:4])
         if len(row["occurrences"]) > 4:
             seen += f" (+{len(row['occurrences']) - 4} more)"
-        lines.append(f"| [{row['url']}]({row['url']}) | {row['category']} | `{row['status_or_id']}` | {seen} |")
+        lines.append(
+            f"| [{row['url']}]({row['url']}) | {row['category']} | `{row['status_or_id']}` | {seen} |"
+        )
     OUTPUT_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(json.dumps({"total_unique_repository_urls": len(rows), "counts_by_category": dict(sorted(counts.items()))}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "total_unique_repository_urls": len(rows),
+                "counts_by_category": dict(sorted(counts.items())),
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":
