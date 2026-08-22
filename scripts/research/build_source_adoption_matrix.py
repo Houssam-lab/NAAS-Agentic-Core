@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TypedDict
 
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY = ROOT / "docs/research/ALL_GITHUB_SOURCES_INVENTORY.json"
@@ -19,6 +20,22 @@ BACKBONE = ROOT / "docs/governance/REFERENCE_BACKBONE.json"
 STANDARDS = ROOT / "docs/governance/EXTERNAL_STANDARDS_REGISTRY.json"
 OUTPUT_JSON = ROOT / "docs/governance/SOURCE_ADOPTION_MATRIX.json"
 OUTPUT_MD = ROOT / "docs/governance/SOURCE_ADOPTION_MATRIX.md"
+
+
+class SourceRow(TypedDict):
+    url: str
+    source_id: str
+    status: str
+    purpose_ar: str
+    application_ar: str
+    local_evidence_paths: list[str]
+    enforcers: list[str]
+    runtime_allowed: bool
+    primary_source_review: bool
+    owner: str
+    upgrade_condition_ar: str
+    occurrences: list[str]
+
 
 BACKBONE_APPLICATIONS: dict[str, dict[str, object]] = {
     "developer-roadmap": {
@@ -105,7 +122,7 @@ def normalize(url: str) -> str:
     return url.removesuffix(".git")
 
 
-def _backbone_row(source: dict, ref: dict) -> dict[str, object]:
+def _backbone_row(source: dict, ref: dict) -> SourceRow:
     identifier = str(ref["id"])
     app = BACKBONE_APPLICATIONS.get(identifier, {})
     return {
@@ -124,7 +141,7 @@ def _backbone_row(source: dict, ref: dict) -> dict[str, object]:
     }
 
 
-def _standard_row(source: dict, ref: dict) -> dict[str, object]:
+def _standard_row(source: dict, ref: dict) -> SourceRow:
     status = str(ref.get("status", "ABSENT"))
     return {
         "url": normalize(str(source["url"])),
@@ -144,7 +161,7 @@ def _standard_row(source: dict, ref: dict) -> dict[str, object]:
     }
 
 
-def _pending_row(source: dict) -> dict[str, object]:
+def _pending_row(source: dict) -> SourceRow:
     return {
         "url": normalize(str(source["url"])),
         "source_id": "unclassified",
@@ -161,10 +178,10 @@ def _pending_row(source: dict) -> dict[str, object]:
     }
 
 
-def _build_rows(inventory: dict, backbone: dict, standards: dict) -> list[dict[str, object]]:
+def _build_rows(inventory: dict, backbone: dict, standards: dict) -> list[SourceRow]:
     backbone_by_url = {normalize(str(row["repo"])): row for row in backbone["references"]}
     standards_by_url = {normalize(str(row["repo"])): row for row in standards["sources"]}
-    rows: list[dict[str, object]] = []
+    rows: list[SourceRow] = []
     for source in inventory["sources"]:
         url = normalize(str(source["url"]))
         if url in backbone_by_url:
@@ -176,7 +193,7 @@ def _build_rows(inventory: dict, backbone: dict, standards: dict) -> list[dict[s
     return rows
 
 
-def _build_payload(rows: list[dict[str, object]]) -> dict[str, object]:
+def _build_payload(rows: list[SourceRow]) -> dict[str, object]:
     return {
         "$schema_version": "1",
         "decision": "D-276",
@@ -203,15 +220,15 @@ def _build_payload(rows: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
-def _status_counts(rows: list[dict[str, object]]) -> dict[str, int]:
+def _status_counts(rows: list[SourceRow]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in rows:
-        status = str(row["status"])
+        status = row["status"]
         counts[status] = counts.get(status, 0) + 1
     return dict(sorted(counts.items()))
 
 
-def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> str:
+def _build_markdown(rows: list[SourceRow], counts: dict[str, int]) -> str:
     descriptions = {
         "MANDATORY_REFERENCE": "Pinned reference backbone; must be respected and locally traced.",
         "EXTERNAL_ACTIVE": "Existing external-standard record marked ACTIVE; still governed by its registry.",
@@ -243,13 +260,13 @@ def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> st
         ]
     )
     lines.extend(
-        f"| [{row['url']}]({row['url']}) | `{row['status']}` | {str(row['purpose_ar']).replace('|', '\\|')} | {', '.join(f'`{p}`' for p in row['local_evidence_paths']) or '—'} |"
+        f"| [{row['url']}]({row['url']}) | `{row['status']}` | {row['purpose_ar'].replace('|', '\\|')} | {', '.join(f'`{p}`' for p in row['local_evidence_paths']) or '—'} |"
         for row in rows
     )
     return "\n".join(lines) + "\n"
 
 
-def _write_outputs(rows: list[dict[str, object]]) -> dict[str, object]:
+def _write_outputs(rows: list[SourceRow]) -> dict[str, object]:
     counts = _status_counts(rows)
     OUTPUT_JSON.write_text(
         json.dumps(_build_payload(rows), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

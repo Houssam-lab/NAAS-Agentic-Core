@@ -6,12 +6,22 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
+from typing import TypedDict
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_JSON = ROOT / "docs/research/ALL_GITHUB_SOURCES_INVENTORY.json"
 OUTPUT_MD = ROOT / "docs/research/ALL_GITHUB_SOURCES_INVENTORY.md"
 URL_RE = re.compile(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?")
 IGNORE_PREFIXES = ("https://github.com/settings/", "https://github.com/sponsors/")
+
+
+class InventoryRow(TypedDict):
+    url: str
+    category: str
+    status_or_id: str
+    occurrences: list[str]
+
+
 GENERATED_ARTIFACTS = {
     "docs/research/ALL_GITHUB_SOURCES_INVENTORY.json",
     "docs/research/ALL_GITHUB_SOURCES_INVENTORY.md",
@@ -68,8 +78,8 @@ def _collect_occurrences() -> dict[str, set[str]]:
 
 def _build_rows(
     occurrences: dict[str, set[str]], backbone_ids: dict[str, str], standards: dict[str, str]
-) -> list[dict[str, object]]:
-    rows = []
+) -> list[InventoryRow]:
+    rows: list[InventoryRow] = []
     for url in sorted(occurrences):
         category, status = classify(url, backbone_ids, standards)
         rows.append(
@@ -99,14 +109,14 @@ def _source_maps() -> tuple[dict[str, str], dict[str, str]]:
     return backbone_ids, standards_map
 
 
-def _category_counts(rows: list[dict[str, object]]) -> dict[str, int]:
+def _category_counts(rows: list[InventoryRow]) -> dict[str, int]:
     counts: dict[str, int] = defaultdict(int)
     for row in rows:
-        counts[str(row["category"])] += 1
+        counts[row["category"]] += 1
     return dict(sorted(counts.items()))
 
 
-def _build_payload(rows: list[dict[str, object]], counts: dict[str, int]) -> dict[str, object]:
+def _build_payload(rows: list[InventoryRow], counts: dict[str, int]) -> dict[str, object]:
     return {
         "generated_on": "2026-08-21",
         "method": "recursive scan of repository text files, normalize .git suffix, exclude github.com/settings and github.com/sponsors",
@@ -116,14 +126,14 @@ def _build_payload(rows: list[dict[str, object]], counts: dict[str, int]) -> dic
     }
 
 
-def _occurrences_display(row: dict[str, object]) -> str:
+def _occurrences_display(row: InventoryRow) -> str:
     occurrences = row["occurrences"]
     seen = ", ".join(f"`{path}`" for path in occurrences[:4]) or "—"
     extra = f" (+{len(occurrences) - 4} more)" if len(occurrences) > 4 else ""
     return seen + extra
 
 
-def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> str:
+def _build_markdown(rows: list[InventoryRow], counts: dict[str, int]) -> str:
     lines = [
         "# Complete GitHub Repository Source Inventory",
         "",
@@ -149,7 +159,7 @@ def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> st
     return "\n".join(lines) + "\n"
 
 
-def _write_outputs(rows: list[dict[str, object]]) -> dict[str, object]:
+def _write_outputs(rows: list[InventoryRow]) -> dict[str, object]:
     counts = _category_counts(rows)
     OUTPUT_JSON.write_text(
         json.dumps(_build_payload(rows, counts), ensure_ascii=False, indent=2) + "\n",

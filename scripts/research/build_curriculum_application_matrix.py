@@ -4,11 +4,34 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TypedDict
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "docs/research/UNIVERSITY_CURRICULUM_CATALOG.json"
 OUTPUT_JSON = ROOT / "docs/research/CURRICULUM_APPLICATION_MATRIX.json"
 OUTPUT_MD = ROOT / "docs/research/CURRICULUM_APPLICATION_MATRIX.md"
+
+
+class Course(TypedDict):
+    course_id: str
+    title: str
+    description: str
+    source: str
+
+
+class CurriculumRow(TypedDict):
+    course_id: str
+    title: str
+    source: str
+    domain_tags: list[str]
+    principles_ar: list[str]
+    change_types: list[str]
+    required_for_all_code: bool
+    status: str
+    authority_rule_ar: str
+    evidence_paths: list[str]
+    owner: str
+
 
 RULES: list[tuple[str, str, str]] = [
     (
@@ -77,7 +100,7 @@ def tags_for(text: str) -> list[tuple[str, str]]:
     return [(tag, principle) for tag, principle in selected if not (tag in seen or seen.add(tag))]
 
 
-def _course_row(course: dict[str, object]) -> dict[str, object]:
+def _course_row(course: Course) -> CurriculumRow:
     text = f"{course['course_id']} {course['title']} {course['description']}"
     tags = tags_for(text)
     return {
@@ -98,11 +121,11 @@ def _course_row(course: dict[str, object]) -> dict[str, object]:
     }
 
 
-def _build_rows(catalog: dict[str, object]) -> list[dict[str, object]]:
+def _build_rows(catalog: dict[str, list[Course]]) -> list[CurriculumRow]:
     return [_course_row(course) for course in catalog["courses"]]
 
 
-def _build_payload(rows: list[dict[str, object]]) -> dict[str, object]:
+def _build_payload(rows: list[CurriculumRow]) -> dict[str, object]:
     return {
         "$schema_version": "1",
         "decision": "D-278",
@@ -129,7 +152,7 @@ def _build_payload(rows: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
-def _domain_counts(rows: list[dict[str, object]]) -> dict[str, int]:
+def _domain_counts(rows: list[CurriculumRow]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in rows:
         for tag in row["domain_tags"]:
@@ -137,7 +160,7 @@ def _domain_counts(rows: list[dict[str, object]]) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
-def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> str:
+def _build_markdown(rows: list[CurriculumRow], counts: dict[str, int]) -> str:
     lines = [
         "# Curriculum Application Matrix",
         "",
@@ -159,7 +182,7 @@ def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> st
     return "\n".join(lines) + "\n"
 
 
-def _write_outputs(rows: list[dict[str, object]]) -> dict[str, object]:
+def _write_outputs(rows: list[CurriculumRow]) -> dict[str, object]:
     payload = _build_payload(rows)
     counts = _domain_counts(rows)
     OUTPUT_JSON.write_text(
