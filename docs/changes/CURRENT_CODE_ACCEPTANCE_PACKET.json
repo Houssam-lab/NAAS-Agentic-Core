@@ -361,9 +361,9 @@
   "git_change_snapshot": {
     "base_ref": "WORKTREE",
     "changed_paths_excluding_packet": [
-      "scripts/fitness/check_documentation_contract.py"
+      ".github/workflows/ci.yml"
     ],
-    "content_sha256_excluding_packet": "45955de1abac9e3a36b3072403284bb7c61208fd5bcdab5e4166ecadb682952a",
+    "content_sha256_excluding_packet": "271380e9c82126def0207daef401ecc623e4c2dd8e3977a93c4efc4c5a8c2cbb",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
