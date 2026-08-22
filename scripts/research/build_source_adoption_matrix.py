@@ -105,81 +105,79 @@ def normalize(url: str) -> str:
     return url.removesuffix(".git")
 
 
-def main() -> None:
-    inventory = load(INVENTORY)
-    backbone = load(BACKBONE)
-    standards = load(STANDARDS)
+def _backbone_row(source: dict, ref: dict) -> dict[str, object]:
+    identifier = str(ref["id"])
+    app = BACKBONE_APPLICATIONS.get(identifier, {})
+    return {
+        "url": normalize(str(source["url"])),
+        "source_id": identifier,
+        "status": "MANDATORY_REFERENCE",
+        "purpose_ar": ref["role_ar"],
+        "application_ar": app.get("application_ar", "يجب أن يملك التطبيق بطاقة محلية قبل التفعيل."),
+        "local_evidence_paths": app.get("evidence", []),
+        "enforcers": ["check_reference_backbone.py", "check_agent_context.py"],
+        "runtime_allowed": False,
+        "primary_source_review": True,
+        "owner": "architecture-governance",
+        "upgrade_condition_ar": "لا تغيير في الدور أو التفعيل التشغيلي دون بطاقة جديدة وADR ومراجعة أمنية وأدلة محلية.",
+        "occurrences": source["occurrences"],
+    }
+
+
+def _standard_row(source: dict, ref: dict) -> dict[str, object]:
+    status = str(ref.get("status", "ABSENT"))
+    return {
+        "url": normalize(str(source["url"])),
+        "source_id": str(ref.get("id", "external-standard")),
+        "status": f"EXTERNAL_{status}",
+        "purpose_ar": "المصدر مسجل في سجل المعايير الخارجية؛ ارجع إلى `read_ar` و`adopted_ar` و`rejected_ar` قبل أي استعارة.",
+        "application_ar": str(ref.get("adopted_ar", "لا يوجد تبنٍ معلن.")),
+        "local_evidence_paths": ref.get("code_paths", []),
+        "enforcers": ref.get("enforcers", []) or ["check_external_standards.py"],
+        "runtime_allowed": status == "ACTIVE",
+        "primary_source_review": "لم يُقرأ الكود" not in str(ref.get("read_ar", "")),
+        "owner": "external-standards-governance",
+        "upgrade_condition_ar": str(
+            ref.get("upgrade_condition_ar", "الحالة لا تتغير دون قرار مكتوب ومراجعة المصدر.")
+        ),
+        "occurrences": source["occurrences"],
+    }
+
+
+def _pending_row(source: dict) -> dict[str, object]:
+    return {
+        "url": normalize(str(source["url"])),
+        "source_id": "unclassified",
+        "status": "PENDING_CLASSIFICATION",
+        "purpose_ar": "لم يُستخرج الغرض بعد من مصدر أولي؛ لا يجوز للوكيل افتراضه من اسم الرابط أو موضعه فقط.",
+        "application_ar": "لا تطبيق أو تبعية جديدة حتى تُنشأ بطاقة فهم وتطبيق وتُراجع الملكية والترخيص والأمن.",
+        "local_evidence_paths": [],
+        "enforcers": ["check_source_adoption_matrix.py"],
+        "runtime_allowed": False,
+        "primary_source_review": False,
+        "owner": "research-governance",
+        "upgrade_condition_ar": "قراءة المصدر الأولي، تحديد الغرض، استخراج المعيار، تسمية التطبيق المحلي والفارض والمالك، ثم تحديث الحالة بقرار مراجَع.",
+        "occurrences": source["occurrences"],
+    }
+
+
+def _build_rows(inventory: dict, backbone: dict, standards: dict) -> list[dict[str, object]]:
     backbone_by_url = {normalize(str(row["repo"])): row for row in backbone["references"]}
     standards_by_url = {normalize(str(row["repo"])): row for row in standards["sources"]}
-
     rows: list[dict[str, object]] = []
     for source in inventory["sources"]:
         url = normalize(str(source["url"]))
         if url in backbone_by_url:
-            ref = backbone_by_url[url]
-            identifier = str(ref["id"])
-            app = BACKBONE_APPLICATIONS.get(identifier, {})
-            rows.append(
-                {
-                    "url": url,
-                    "source_id": identifier,
-                    "status": "MANDATORY_REFERENCE",
-                    "purpose_ar": ref["role_ar"],
-                    "application_ar": app.get(
-                        "application_ar", "يجب أن يملك التطبيق بطاقة محلية قبل التفعيل."
-                    ),
-                    "local_evidence_paths": app.get("evidence", []),
-                    "enforcers": ["check_reference_backbone.py", "check_agent_context.py"],
-                    "runtime_allowed": False,
-                    "primary_source_review": True,
-                    "owner": "architecture-governance",
-                    "upgrade_condition_ar": "لا تغيير في الدور أو التفعيل التشغيلي دون بطاقة جديدة وADR ومراجعة أمنية وأدلة محلية.",
-                    "occurrences": source["occurrences"],
-                }
-            )
-            continue
-        if url in standards_by_url:
-            ref = standards_by_url[url]
-            status = str(ref.get("status", "ABSENT"))
-            rows.append(
-                {
-                    "url": url,
-                    "source_id": str(ref.get("id", "external-standard")),
-                    "status": f"EXTERNAL_{status}",
-                    "purpose_ar": "المصدر مسجل في سجل المعايير الخارجية؛ ارجع إلى `read_ar` و`adopted_ar` و`rejected_ar` قبل أي استعارة.",
-                    "application_ar": str(ref.get("adopted_ar", "لا يوجد تبنٍ معلن.")),
-                    "local_evidence_paths": ref.get("code_paths", []),
-                    "enforcers": ref.get("enforcers", []) or ["check_external_standards.py"],
-                    "runtime_allowed": status == "ACTIVE",
-                    "primary_source_review": "لم يُقرأ الكود" not in str(ref.get("read_ar", "")),
-                    "owner": "external-standards-governance",
-                    "upgrade_condition_ar": str(
-                        ref.get(
-                            "upgrade_condition_ar", "الحالة لا تتغير دون قرار مكتوب ومراجعة المصدر."
-                        )
-                    ),
-                    "occurrences": source["occurrences"],
-                }
-            )
-            continue
-        rows.append(
-            {
-                "url": url,
-                "source_id": "unclassified",
-                "status": "PENDING_CLASSIFICATION",
-                "purpose_ar": "لم يُستخرج الغرض بعد من مصدر أولي؛ لا يجوز للوكيل افتراضه من اسم الرابط أو موضعه فقط.",
-                "application_ar": "لا تطبيق أو تبعية جديدة حتى تُنشأ بطاقة فهم وتطبيق وتُراجع الملكية والترخيص والأمن.",
-                "local_evidence_paths": [],
-                "enforcers": ["check_source_adoption_matrix.py"],
-                "runtime_allowed": False,
-                "primary_source_review": False,
-                "owner": "research-governance",
-                "upgrade_condition_ar": "قراءة المصدر الأولي، تحديد الغرض، استخراج المعيار، تسمية التطبيق المحلي والفارض والمالك، ثم تحديث الحالة بقرار مراجَع.",
-                "occurrences": source["occurrences"],
-            }
-        )
+            rows.append(_backbone_row(source, backbone_by_url[url]))
+        elif url in standards_by_url:
+            rows.append(_standard_row(source, standards_by_url[url]))
+        else:
+            rows.append(_pending_row(source))
+    return rows
 
-    payload = {
+
+def _build_payload(rows: list[dict[str, object]]) -> dict[str, object]:
+    return {
         "$schema_version": "1",
         "decision": "D-276",
         "purpose_ar": "لا يوجد مستودع أو رابط GitHub في المشروع خارج سجل الفهم؛ كل مصدر إما موصوف ومثبت أو معلن صراحة أنه قيد التصنيف ولا يجوز تجاوزه.",
@@ -203,14 +201,24 @@ def main() -> None:
         "total_sources": len(rows),
         "sources": rows,
     }
-    OUTPUT_JSON.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
 
+
+def _status_counts(rows: list[dict[str, object]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in rows:
         status = str(row["status"])
         counts[status] = counts.get(status, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> str:
+    descriptions = {
+        "MANDATORY_REFERENCE": "Pinned reference backbone; must be respected and locally traced.",
+        "EXTERNAL_ACTIVE": "Existing external-standard record marked ACTIVE; still governed by its registry.",
+        "EXTERNAL_SEAM": "Explicit seam with no uncontrolled runtime adoption.",
+        "EXTERNAL_ABSENT": "Explicitly absent or rejected; cannot enter silently.",
+        "PENDING_CLASSIFICATION": "Existing URL requiring primary-source understanding before any new use.",
+    }
     lines = [
         "# Source Adoption Matrix",
         "",
@@ -221,17 +229,10 @@ def main() -> None:
         "| Status | Count | Rule |",
         "|---|---:|---|",
     ]
-    descriptions = {
-        "MANDATORY_REFERENCE": "Pinned reference backbone; must be respected and locally traced.",
-        "EXTERNAL_ACTIVE": "Existing external-standard record marked ACTIVE; still governed by its registry.",
-        "EXTERNAL_SEAM": "Explicit seam with no uncontrolled runtime adoption.",
-        "EXTERNAL_ABSENT": "Explicitly absent or rejected; cannot enter silently.",
-        "PENDING_CLASSIFICATION": "Existing URL requiring primary-source understanding before any new use.",
-    }
-    for status, count in sorted(counts.items()):
-        lines.append(
-            f"| `{status}` | {count} | {descriptions.get(status, 'Governed status; see matrix JSON.')} |"
-        )
+    lines.extend(
+        f"| `{status}` | {count} | {descriptions.get(status, 'Governed status; see matrix JSON.')} |"
+        for status, count in counts.items()
+    )
     lines.extend(
         [
             "",
@@ -241,18 +242,25 @@ def main() -> None:
             "|---|---|---|---|",
         ]
     )
-    for row in rows:
-        evidence = ", ".join(f"`{p}`" for p in row["local_evidence_paths"]) or "—"
-        purpose = str(row["purpose_ar"]).replace("|", "\\|")
-        lines.append(
-            f"| [{row['url']}]({row['url']}) | `{row['status']}` | {purpose} | {evidence} |"
-        )
-    OUTPUT_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(
-        json.dumps(
-            {"total_sources": len(rows), "counts": dict(sorted(counts.items()))}, ensure_ascii=False
-        )
+    lines.extend(
+        f"| [{row['url']}]({row['url']}) | `{row['status']}` | {str(row['purpose_ar']).replace('|', '\\|')} | {', '.join(f'`{p}`' for p in row['local_evidence_paths']) or '—'} |"
+        for row in rows
     )
+    return "\n".join(lines) + "\n"
+
+
+def _write_outputs(rows: list[dict[str, object]]) -> dict[str, object]:
+    counts = _status_counts(rows)
+    OUTPUT_JSON.write_text(
+        json.dumps(_build_payload(rows), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    OUTPUT_MD.write_text(_build_markdown(rows, counts), encoding="utf-8")
+    return {"total_sources": len(rows), "counts": counts}
+
+
+def main() -> None:
+    rows = _build_rows(load(INVENTORY), load(BACKBONE), load(STANDARDS))
+    print(json.dumps(_write_outputs(rows), ensure_ascii=False))
 
 
 if __name__ == "__main__":

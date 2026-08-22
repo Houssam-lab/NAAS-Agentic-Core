@@ -22,27 +22,40 @@ def normalize(path: str) -> str:
     return path.strip().removeprefix("./")
 
 
+def _paths_from_diff(args: list[str]) -> set[str]:
+    output = run(args)
+    return {normalize(line) for line in output.splitlines() if line.strip()}
+
+
+def _paths_from_porcelain(output: str) -> set[str]:
+    names: set[str] = set()
+    for line in output.splitlines():
+        if line.startswith("?? ") or (
+            len(line) >= 4 and (line[0] in "MADRCU" or line[1] in "MADRCU")
+        ):
+            names.add(normalize(line[3:]))
+    return names
+
+
+def _base_paths(base: str) -> set[str]:
+    return _paths_from_diff(
+        ["git", "diff", "--name-only", "--diff-filter=ACMRTUXB", f"{base}...HEAD"]
+    )
+
+
+def _working_tree_paths() -> set[str]:
+    names = _paths_from_diff(["git", "diff", "--name-only", "--diff-filter=ACMRTUXB"])
+    names.update(
+        _paths_from_diff(["git", "diff", "--cached", "--name-only", "--diff-filter=ACMRTUXB"])
+    )
+    porcelain = run(["git", "status", "--porcelain=v1", "--untracked-files=all"])
+    names.update(_paths_from_porcelain(porcelain))
+    return names
+
+
 def current_paths() -> list[str]:
     base = os.environ.get("CODE_ACCEPTANCE_BASE_SHA", "").strip()
-    names: set[str] = set()
-    if base:
-        output = run(["git", "diff", "--name-only", "--diff-filter=ACMRTUXB", f"{base}...HEAD"])
-        names.update(normalize(line) for line in output.splitlines() if line.strip())
-    else:
-        for args in (
-            ["git", "diff", "--name-only", "--diff-filter=ACMRTUXB"],
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMRTUXB"],
-        ):
-            output = run(args)
-            names.update(normalize(line) for line in output.splitlines() if line.strip())
-        porcelain = run(["git", "status", "--porcelain=v1", "--untracked-files=all"])
-        for line in porcelain.splitlines():
-            if (
-                line.startswith("?? ")
-                or (len(line) >= 4 and line[0] in "MADRCU")
-                or (len(line) >= 4 and line[1] in "MADRCU")
-            ):
-                names.add(normalize(line[3:]))
+    names = _base_paths(base) if base else _working_tree_paths()
     return sorted(name for name in names if name)
 
 

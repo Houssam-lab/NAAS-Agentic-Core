@@ -77,31 +77,33 @@ def tags_for(text: str) -> list[tuple[str, str]]:
     return [(tag, principle) for tag, principle in selected if not (tag in seen or seen.add(tag))]
 
 
-def main() -> None:
-    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
-    rows: list[dict[str, object]] = []
-    for course in catalog["courses"]:
-        text = f"{course['course_id']} {course['title']} {course['description']}"
-        tags = tags_for(text)
-        rows.append(
-            {
-                "course_id": course["course_id"],
-                "title": course["title"],
-                "source": course["source"],
-                "domain_tags": [tag for tag, _ in tags],
-                "principles_ar": [principle for _, principle in tags],
-                "change_types": ["code", "architecture", "agent", "research", "commercial"],
-                "required_for_all_code": course["course_id"] == "COMPSCI 50",
-                "status": "CATALOGED_PROVISIONAL_LOCAL_MAP",
-                "authority_rule_ar": "لا يُعد هذا المقرر دليلاً مطبقاً حتى يذكره change packet للمهمة، ويحدد موضع التطبيق والاختبار والمالك.",
-                "evidence_paths": [
-                    "docs/research/UNIVERSITY_CURRICULUM_CATALOG.json",
-                    "docs/research/authoritative-foundations.md",
-                ],
-                "owner": "curriculum-governance",
-            }
-        )
-    payload = {
+def _course_row(course: dict[str, object]) -> dict[str, object]:
+    text = f"{course['course_id']} {course['title']} {course['description']}"
+    tags = tags_for(text)
+    return {
+        "course_id": course["course_id"],
+        "title": course["title"],
+        "source": course["source"],
+        "domain_tags": [tag for tag, _ in tags],
+        "principles_ar": [principle for _, principle in tags],
+        "change_types": ["code", "architecture", "agent", "research", "commercial"],
+        "required_for_all_code": course["course_id"] == "COMPSCI 50",
+        "status": "CATALOGED_PROVISIONAL_LOCAL_MAP",
+        "authority_rule_ar": "لا يُعد هذا المقرر دليلاً مطبقاً حتى يذكره change packet للمهمة، ويحدد موضع التطبيق والاختبار والمالك.",
+        "evidence_paths": [
+            "docs/research/UNIVERSITY_CURRICULUM_CATALOG.json",
+            "docs/research/authoritative-foundations.md",
+        ],
+        "owner": "curriculum-governance",
+    }
+
+
+def _build_rows(catalog: dict[str, object]) -> list[dict[str, object]]:
+    return [_course_row(course) for course in catalog["courses"]]
+
+
+def _build_payload(rows: list[dict[str, object]]) -> dict[str, object]:
+    return {
         "$schema_version": "1",
         "decision": "D-278",
         "catalog_source": "docs/research/UNIVERSITY_CURRICULUM_CATALOG.json",
@@ -125,14 +127,18 @@ def main() -> None:
         "course_count": len(rows),
         "courses": rows,
     }
-    OUTPUT_JSON.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+
+
+def _domain_counts(rows: list[dict[str, object]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in rows:
         for tag in row["domain_tags"]:
             counts[tag] = counts.get(tag, 0) + 1
-    md = [
+    return dict(sorted(counts.items()))
+
+
+def _build_markdown(rows: list[dict[str, object]], counts: dict[str, int]) -> str:
+    lines = [
         "# Curriculum Application Matrix",
         "",
         "> Every course extracted from the official Harvard listing has a visible application card. The map is deliberately provisional: it prevents omission and gives agents a task gate, but it does not fabricate proof that the course content has been implemented.",
@@ -142,20 +148,31 @@ def main() -> None:
         "| Domain | Courses |",
         "|---|---:|",
     ]
-    for tag, count in sorted(counts.items()):
-        md.append(f"| `{tag}` | {count} |")
-    md.extend(["", "| Course | Domains | Required for all code | Status |", "|---|---|---:|---|"])
-    for row in rows:
-        md.append(
-            f"| `{row['course_id']}` {row['title']} | {', '.join(row['domain_tags'])} | {'yes' if row['required_for_all_code'] else 'task-specific'} | `{row['status']}` |"
-        )
-    OUTPUT_MD.write_text("\n".join(md) + "\n", encoding="utf-8")
-    print(
-        json.dumps(
-            {"course_count": len(rows), "domain_counts": dict(sorted(counts.items()))},
-            ensure_ascii=False,
-        )
+    lines.extend(f"| `{tag}` | {count} |" for tag, count in counts.items())
+    lines.extend(
+        ["", "| Course | Domains | Required for all code | Status |", "|---|---|---:|---|"]
     )
+    lines.extend(
+        f"| `{row['course_id']}` {row['title']} | {', '.join(row['domain_tags'])} | {'yes' if row['required_for_all_code'] else 'task-specific'} | `{row['status']}` |"
+        for row in rows
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _write_outputs(rows: list[dict[str, object]]) -> dict[str, object]:
+    payload = _build_payload(rows)
+    counts = _domain_counts(rows)
+    OUTPUT_JSON.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    OUTPUT_MD.write_text(_build_markdown(rows, counts), encoding="utf-8")
+    return {"course_count": len(rows), "domain_counts": counts}
+
+
+def main() -> None:
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    result = _write_outputs(_build_rows(catalog))
+    print(json.dumps(result, ensure_ascii=False))
 
 
 if __name__ == "__main__":
