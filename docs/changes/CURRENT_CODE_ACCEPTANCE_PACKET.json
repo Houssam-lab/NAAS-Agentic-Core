@@ -368,6 +368,7 @@
       ".github/branch-protection-policy.json",
       ".github/workflows/ci.yml",
       ".github/workflows/doc_integrity.yml",
+      ".github/workflows/live-e2e.yml",
       ".github/workflows/qodana_code_quality.yml",
       ".memory/agentic_design_principles_constitution.md",
       ".memory/ci-gates.md",
@@ -383,6 +384,7 @@
       "SAFEGUARDING.md",
       "app/api/README.md",
       "app/core/README.md",
+      "app/core/gateway/simple_client.py",
       "app/services/README.md",
       "app/services/boundaries/README.md",
       "docs/DEPLOYMENT_GUIDE.md",
@@ -430,9 +432,10 @@
       "scripts/research/inventory_github_sources.py",
       "scripts/research/refresh_acceptance_diff_snapshot.py",
       "test_validate.py",
+      "tests/core/test_d177_rate_limit_resilience.py",
       "tests/fitness/test_documentation_contract_gate.py"
     ],
-    "content_sha256_excluding_packet": "cc0652fb3d8e7dc9b59cd080453c2652d430832d000f53271b0b1263889246f7",
+    "content_sha256_excluding_packet": "afbbfc888d4348e10bbb850369dab3b98405f38680c0d44e21b5101d973ff7d4",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
