@@ -37,12 +37,15 @@
     "owner": "curriculum-governance"
   },
   "git_change_snapshot": {
-    "base_ref": "ffbb80d05bb5f3694b3688fd0b090ded0cf29230",
+    "base_ref": "origin/main",
     "changed_paths_excluding_packet": [
-      "app/api/routers/ws_proxy.py",
-      "tests/services/test_ws_proxy_html_bleed.py"
+      "requirements-dev.txt",
+      "requirements-test.txt",
+      "requirements.txt",
+      "tests/app/application/use_cases/planning/test_refactored_planner.py",
+      "tests/test_refactored_architecture.py"
     ],
-    "content_sha256_excluding_packet": "ead9c7a0f3c39444fd3fa145fd99a1e35bdc4551c5bd00bcb559b17378e5625a",
+    "content_sha256_excluding_packet": "a602655fd36498f0a65001fde61dfdddec63ba06fd1be83c6159dc76df7a718f",
     "refreshed_on": "2026-08-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
