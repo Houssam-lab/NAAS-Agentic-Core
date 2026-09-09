@@ -29,9 +29,7 @@ async def websocket_proxy(client_ws: WebSocket, target_url: str):  # noqa: PLR09
     requested_protocols = client_ws.headers.get("sec-websocket-protocol", "").split(",")
     parsed_protocols = [p.strip() for p in requested_protocols if p.strip()]
     selected_protocol = (
-        "jwt"
-        if "jwt" in parsed_protocols
-        else (parsed_protocols[0] if parsed_protocols else None)
+        "jwt" if "jwt" in parsed_protocols else (parsed_protocols[0] if parsed_protocols else None)
     )
 
     await client_ws.accept(subprotocol=selected_protocol)
@@ -100,10 +98,15 @@ async def websocket_proxy(client_ws: WebSocket, target_url: str):  # noqa: PLR09
                         if client_ws.client_state == WebSocketState.CONNECTED:
                             if isinstance(message, str):
                                 msg_lower = message.strip().lower()
-                                if msg_lower.startswith(
-                                    "<!doctype"
-                                ) or msg_lower.startswith("<html"):
-                                    await _handle_html_bleed(client_ws, message, logger, "api_gateway.html_bleed_intercepted")
+                                if msg_lower.startswith("<!doctype") or msg_lower.startswith(
+                                    "<html"
+                                ):
+                                    await _handle_html_bleed(
+                                        client_ws,
+                                        message,
+                                        logger,
+                                        "api_gateway.html_bleed_intercepted",
+                                    )
                                     break
                             await client_ws.send_text(message)
                 except websockets.exceptions.ConnectionClosed:
@@ -141,8 +144,14 @@ async def websocket_proxy(client_ws: WebSocket, target_url: str):  # noqa: PLR09
                 body_orig = body.decode("utf-8", errors="ignore")
                 if client_ws.client_state == WebSocketState.CONNECTED:
                     import contextlib
+
                     with contextlib.suppress(Exception):
-                        await _handle_html_bleed(client_ws, body_orig, logger, f"api_gateway.upstream_invalid_status_html_bleed status={status_code}")
+                        await _handle_html_bleed(
+                            client_ws,
+                            body_orig,
+                            logger,
+                            f"api_gateway.upstream_invalid_status_html_bleed status={status_code}",
+                        )
                 return
 
         logger.error(f"WebSocket proxy failed to connect to {target_url}: {e}")
@@ -150,19 +159,23 @@ async def websocket_proxy(client_ws: WebSocket, target_url: str):  # noqa: PLR09
         if client_ws.client_state == WebSocketState.CONNECTED:
             await client_ws.close(code=1011, reason="Upstream connection failed")
 
-async def _handle_html_bleed(client_ws: WebSocket, message: str, logger: logging.Logger, log_msg: str) -> None:
+
+async def _handle_html_bleed(
+    client_ws: WebSocket, message: str, logger: logging.Logger, log_msg: str
+) -> None:
     title_match = re.search(r"<title>(.*?)</title>", message, re.IGNORECASE)
     snippet = (
-        f"title={title_match.group(1)[:100]!r}"
-        if title_match
-        else f"snippet={message[:200]!r}"
+        f"title={title_match.group(1)[:100]!r}" if title_match else f"snippet={message[:200]!r}"
     )
     logger.error(f"{log_msg} snippet=%s", snippet)
     await client_ws.send_text(
         json.dumps(
             {
                 "type": "error",
-                "payload": {"code": "WS_HTML_BLEED", "details": "Upstream returned HTML instead of JSON"}
+                "payload": {
+                    "code": "WS_HTML_BLEED",
+                    "details": "Upstream returned HTML instead of JSON",
+                },
             }
         )
     )

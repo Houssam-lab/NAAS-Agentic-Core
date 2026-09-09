@@ -12,8 +12,10 @@ from app.api.routers.ws_proxy import _proxy_websocket
 try:
     from websockets.exceptions import InvalidStatus
 except ImportError:
+
     class InvalidStatus(Exception):  # noqa: N818 — يُحاكي اسم الصنف في مكتبة websockets
         pass
+
 
 @pytest.fixture
 def mock_client_ws():
@@ -56,11 +58,12 @@ async def test_html_bleed_detection_in_message_loop(
     async def infinite_receive():
         await asyncio.sleep(1)
         raise asyncio.CancelledError()
+
     mock_client_ws.receive_text.side_effect = infinite_receive
 
     # Create an async generator that yields an HTML bleed message
     async def message_generator():
-        yield '   <HTML><head><title>500 Internal Server Error</title></head><body>error</body></html>   '
+        yield "   <HTML><head><title>500 Internal Server Error</title></head><body>error</body></html>   "
         await asyncio.sleep(1)
 
     upstream_ws.__aiter__.side_effect = lambda: message_generator()
@@ -86,7 +89,9 @@ async def test_html_bleed_detection_in_message_loop(
     mock_client_ws.close.assert_called_with(code=1011)
 
     # Verify logger snippet contains title
-    assert "ws_proxy.html_bleed_intercepted snippet=title='500 Internal Server Error'" in caplog.text
+    assert (
+        "ws_proxy.html_bleed_intercepted snippet=title='500 Internal Server Error'" in caplog.text
+    )
 
 
 @pytest.mark.asyncio
@@ -104,7 +109,7 @@ async def test_html_bleed_detection_in_invalid_status(
     # Create a mock exception with response body
     class MockResponse:
         status_code = 500
-        body = b'<!DOCTYPE html>\n<html><body>500 Error</body></html>'
+        body = b"<!DOCTYPE html>\n<html><body>500 Error</body></html>"
 
     class MockInvalidStatusError(Exception):
         response = MockResponse()
@@ -116,6 +121,7 @@ async def test_html_bleed_detection_in_invalid_status(
 
     # We also need to patch InvalidStatus inside ws_proxy to be MockInvalidStatusError
     import app.api.routers.ws_proxy
+
     original_invalid_status = app.api.routers.ws_proxy.InvalidStatus
     app.api.routers.ws_proxy.InvalidStatus = MockInvalidStatusError
 
@@ -142,9 +148,7 @@ async def test_html_bleed_detection_in_invalid_status(
 
 
 @pytest.mark.asyncio
-async def test_html_bleed_various_payloads(
-    mock_client_ws, mock_websockets_connect, caplog
-):
+async def test_html_bleed_various_payloads(mock_client_ws, mock_websockets_connect, caplog):
     """
     Test other payload combinations that should trigger the bleed detection
     """
@@ -152,8 +156,8 @@ async def test_html_bleed_various_payloads(
 
     payloads = [
         ' {"foo": "bar"} \n <body ... ',
-        '<!Doctype html><html>',
-        '   <HEAD><title>err</title></head>',
+        "<!Doctype html><html>",
+        "   <HEAD><title>err</title></head>",
     ]
 
     for payload in payloads:
@@ -162,6 +166,7 @@ async def test_html_bleed_various_payloads(
         async def infinite_receive():
             await asyncio.sleep(1)
             raise asyncio.CancelledError()
+
         mock_client_ws.receive_text.side_effect = infinite_receive
 
         async def message_generator(payload=payload):
