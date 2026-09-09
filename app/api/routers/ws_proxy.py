@@ -30,7 +30,7 @@ import os
 
 import websockets
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from websockets.exceptions import ConnectionClosed, InvalidStatus
+from websockets.exceptions import ConnectionClosed
 
 try:
     from websockets.exceptions import InvalidStatus
@@ -56,9 +56,7 @@ _CONV_SERVICE_BASE = os.environ.get(
 _CONNECT_TIMEOUT = float(os.environ.get("WS_PROXY_CONNECT_TIMEOUT", "10"))
 
 # حجم buffer للرسائل (bytes)
-_MAX_MESSAGE_SIZE = int(
-    os.environ.get("WS_PROXY_MAX_MESSAGE_SIZE", str(10 * 1024 * 1024))
-)
+_MAX_MESSAGE_SIZE = int(os.environ.get("WS_PROXY_MAX_MESSAGE_SIZE", str(10 * 1024 * 1024)))
 
 
 def _build_upstream_url(path: str, query_string: str) -> str:
@@ -107,12 +105,8 @@ async def _proxy_websocket(
 
     # Determine auth transport mode for diagnostics (never log token value)
     has_token_qp = "token=" in upstream_url
-    auth_mode = (
-        "query_param" if has_token_qp else ("subprotocol" if subprotocols else "none")
-    )
-    safe_upstream = upstream_url.split("?", maxsplit=1)[0] + (
-        "?..." if "?" in upstream_url else ""
-    )
+    auth_mode = "query_param" if has_token_qp else ("subprotocol" if subprotocols else "none")
+    safe_upstream = upstream_url.split("?", maxsplit=1)[0] + ("?..." if "?" in upstream_url else "")
 
     logger.info(
         "ws_proxy.connecting upstream=%s auth_mode=%s protocols=%s",
@@ -228,26 +222,6 @@ async def _proxy_websocket(
         except Exception:
             pass
 
-    except InvalidStatus as exc:
-        logger.error(
-            "ws_proxy.upstream_invalid_status url=%s status=%s",
-            upstream_url,
-            getattr(exc.response, "status_code", "unknown"),
-        )
-        try:
-            body = getattr(exc.response, "body", b"")
-            if body and (b"<html" in body.lower() or b"<!doctype" in body.lower()):
-                logger.error(
-                    "ws_proxy.html_bleed_prevented: Blocked HTML response from upstream."
-                )
-
-            await client_ws.send_text(
-                '{"type":"error","payload":{"details":"conversation-service returned an error","code":"WS_UPSTREAM_ERROR"}}'
-            )
-            await client_ws.close(code=1011)
-        except Exception:
-            pass
-
     except OSError as exc:
         logger.error("ws_proxy.upstream_unreachable url=%s error=%s", upstream_url, exc)
         try:
@@ -260,9 +234,7 @@ async def _proxy_websocket(
 
     except Exception as exc:
         is_invalid_status = InvalidStatus and isinstance(exc, InvalidStatus)
-        is_invalid_status_code = InvalidStatusCode and isinstance(
-            exc, InvalidStatusCode
-        )
+        is_invalid_status_code = InvalidStatusCode and isinstance(exc, InvalidStatusCode)
 
         if is_invalid_status or is_invalid_status_code:
             status_code = getattr(exc, "status_code", None)
@@ -283,9 +255,7 @@ async def _proxy_websocket(
                 import re
 
                 body_orig = body.decode("utf-8", errors="ignore")
-                title_match = re.search(
-                    r"<title>(.*?)</title>", body_orig, re.IGNORECASE
-                )
+                title_match = re.search(r"<title>(.*?)</title>", body_orig, re.IGNORECASE)
                 snippet = (
                     f"title={title_match.group(1)[:100]!r}"
                     if title_match
@@ -329,9 +299,7 @@ async def customer_chat_ws_proxy(websocket: WebSocket) -> None:
     D-WS-001: هذا هو نقطة الدخول الوحيدة لـ WebSocket من المتصفح.
     """
     query_string = websocket.scope.get("query_string", b"").decode("utf-8")
-    subprotocols: list[str] = list(
-        websocket.headers.get("sec-websocket-protocol", "").split(", ")
-    )
+    subprotocols: list[str] = list(websocket.headers.get("sec-websocket-protocol", "").split(", "))
     subprotocols = [p.strip() for p in subprotocols if p.strip()]
 
     upstream_url = _build_upstream_url("/chat/ws", query_string)
@@ -354,9 +322,7 @@ async def admin_chat_ws_proxy(websocket: WebSocket) -> None:
     يُمرِّر الاتصال إلى conversation-service:/admin/chat/ws.
     """
     query_string = websocket.scope.get("query_string", b"").decode("utf-8")
-    subprotocols: list[str] = list(
-        websocket.headers.get("sec-websocket-protocol", "").split(", ")
-    )
+    subprotocols: list[str] = list(websocket.headers.get("sec-websocket-protocol", "").split(", "))
     subprotocols = [p.strip() for p in subprotocols if p.strip()]
 
     upstream_url = _build_upstream_url("/admin/chat/ws", query_string)

@@ -18,9 +18,44 @@ logger = logging.getLogger("orchestrator-client")
 class TurnFallbackMixin:
     """سلسلة الـ fallback المحلية المحروسة — منقولة حرفياً من ذيل chat_with_agent."""
 
-    async def _stage_local_fallback(
-        self, ctx: TurnContext
-    ) -> AsyncGenerator[dict | str, None]:
+    async def _build_local_file_count_response(self, question: str) -> str | None:
+        """يجيب عن «كم عدد ملفات بايثون في المشروع؟» حتمياً — صفر LLM وصفر shell.
+
+        ## العطل المُصلَح (ISS-LLM-CHAIN — 2026-09-08)
+
+        `_stage_local_fallback` كان يستدعي هذه الدالّة **ولم تكن معرَّفة أصلاً**
+        بعد تفكيك God-file (D-166/D-170) — والنداء بلا `try/except`، فأي
+        ``AttributeError`` يُسقط **سلسلة الـ fallback المحلية بأكملها**. أي أنّ
+        رافعة الطوارئ `REQUIRE_ORCHESTRATOR=0` — المصمَّمة لإبقاء النظام يُجيب
+        حين تسقط خدمة التنسيق — كانت ميتة هي نفسها. لم يظهر الخلل في CI لأنّ
+        الاختبارات تُستبدل فيها هذه الدالّة بـ monkeypatch.
+
+        التنفيذ يفوِّض للقدرة القانونية
+        `app.services.capabilities.file_intelligence` (عدّ بايثون الخالص،
+        بلا عملية فرعية — M0) بدل أي منطقٍ محلي.
+
+        Returns:
+            رسالة العدّ الجاهزة، أو ``None`` إن لم يكن السؤال سؤالَ عدٍّ.
+        """
+        import asyncio
+
+        from app.services.capabilities.file_intelligence import (
+            FileIntelligenceRequest,
+            count_project_files,
+            default_project_root,
+            detect_file_intelligence,
+            render_compatible_message,
+        )
+
+        decision = detect_file_intelligence(FileIntelligenceRequest(question=question))
+        if not decision.recognized:
+            return None
+        count = await asyncio.to_thread(
+            count_project_files, default_project_root(), decision.extension
+        )
+        return render_compatible_message(decision.extension, count)
+
+    async def _stage_local_fallback(self, ctx: TurnContext) -> AsyncGenerator[dict | str, None]:
         """سلسلة الـ fallback المحلية المحروسة (D-047/D-048/ISS-053) — خلف REQUIRE_ORCHESTRATOR=0."""
         question = ctx.question
         history_messages = ctx.history_messages
@@ -46,9 +81,7 @@ class TurnFallbackMixin:
                 parent_context=_root_ctx,
                 tags={"fallback_step": "file_intelligence"},
             )
-        local_file_count_response = await self._build_local_file_count_response(
-            question
-        )
+        local_file_count_response = await self._build_local_file_count_response(question)
         try:
             if _fb_ctx:
                 obs.end_span(
@@ -96,9 +129,7 @@ class TurnFallbackMixin:
         ret_streamed_any = False
         ret_streamed_chars = 0
         try:
-            async for chunk in self._stream_local_retrieval_response(
-                question, history_messages
-            ):
+            async for chunk in self._stream_local_retrieval_response(question, history_messages):
                 if not chunk:
                     continue
                 ret_streamed_any = True
@@ -275,9 +306,7 @@ class TurnFallbackMixin:
 
         # Ultimate safety net: STREAMING raw LLM call (no graph, no state) — D-047
         is_file_intelligence = self._file_intelligence_decision(question)[0]
-        is_exercise_retrieval = self._exercise_retrieval_decision(
-            question, history_messages
-        )
+        is_exercise_retrieval = self._exercise_retrieval_decision(question, history_messages)
         if not is_file_intelligence and not is_exercise_retrieval:
             _gc_t0 = time.perf_counter()
             _gc_ctx = None

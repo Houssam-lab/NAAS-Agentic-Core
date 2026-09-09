@@ -24,9 +24,7 @@ logger = logging.getLogger("orchestrator-client")
 class TurnPreemptsDeterministicMixin:
     """المراحل الحتمية: بوابة السياسة، التحية، السؤال المرقّم، الإجابة الحسابية."""
 
-    async def _stage_policy_gate(
-        self, ctx: TurnContext
-    ) -> AsyncGenerator[dict | str, None]:
+    async def _stage_policy_gate(self, ctx: TurnContext) -> AsyncGenerator[dict | str, None]:
         """بوابة السياسة (D-144) + defer (D-145) + محرّك الدور المعرفي (D-158) + الحلّ الرمزي."""
         from app.services.skills.concept_diagnosis_skill import (
             ConceptDiagnosisInput,
@@ -90,9 +88,7 @@ class TurnPreemptsDeterministicMixin:
         _comp = (
             None
             if _scope_defers
-            else await self._build_probability_computational_answer(
-                question, history_messages
-            )
+            else await self._build_probability_computational_answer(question, history_messages)
         )
         if _comp:
             _comp_text, _comp_event = _comp
@@ -148,9 +144,7 @@ class TurnPreemptsDeterministicMixin:
         ctx.tutor_state = tutor_state
 
     @staticmethod
-    def _scope_request_defers(
-        question: str, history_messages: list[dict[str, str]] | None
-    ) -> bool:
+    def _scope_request_defers(question: str, history_messages: list[dict[str, str]] | None) -> bool:
         """هل يتنحّى بثُّ بوّابة السياسة لطلب نطاقٍ صريح من الطالب؟ (L2 · D-206)
 
         **الشرط مزدوج عمداً**: نيّة نطاقٍ صريحة **و** مرحلةٌ لاحقة تستطيع خدمتها فعلاً
@@ -184,9 +178,7 @@ class TurnPreemptsDeterministicMixin:
             logger.warning("scope_defer_check_failed", exc_info=True)
             return False
 
-    async def _stage_greeting(
-        self, ctx: TurnContext
-    ) -> AsyncGenerator[dict | str, None]:
+    async def _stage_greeting(self, ctx: TurnContext) -> AsyncGenerator[dict | str, None]:
         """التحية الحتمية (ISS-079/D-067) — أعلى أولوية، صفر LLM."""
         question = ctx.question
         obs = ctx.obs
@@ -241,9 +233,54 @@ class TurnPreemptsDeterministicMixin:
             ctx.turn_complete = True
             return
 
-    async def _stage_question_only(
-        self, ctx: TurnContext
-    ) -> AsyncGenerator[dict | str, None]:
+    async def _stream_question_only_response(
+        self,
+        question: str,
+        history_messages: list[dict[str, str]] | None = None,
+    ) -> AsyncGenerator[str, None]:
+        """يبثّ الاقتطاع الحتمي لِـ«أعطني السؤال رقم N فقط» — صفر LLM.
+
+        ## العطل المُصلَح (ISS-LLM-CHAIN — 2026-09-08)
+
+        كان `_stage_question_only` يستدعي هذه الدالّة **ولم تكن معرَّفة أصلاً**
+        في شجرة المصدر: كل دور طالب كان يرمي
+        ``AttributeError: 'OrchestratorClient' object has no attribute
+        '_stream_question_only_response'`` فيُسجَّل تحذيراً
+        (``question_only_preempt_failed``) ثم يُتابع الدور — أي أنّ قدرة ISS-112
+        كانت ميتة بالكامل، وطالبٌ يسأل «أعطني السؤال 2 فقط» يتلقّى التمرين كاملاً
+        أو جواباً مُهلوساً من النموذج.
+
+        التنفيذ يفوِّض للسلطة القانونية الوحيدة:
+        ``app.services.capabilities.exercise_retrieval.detect_question_only_request``
+        (نفس القدرة التي تحرسها ``tests/services/test_iss112_question_only.py``)
+        — بلا أي منطق استرجاعٍ هنا.
+
+        Yields:
+            مقاطع نصية جاهزة للبثّ (تأثير كتابة تدريجي)، ولا شيء إن لم تُعرَف النيّة.
+        """
+        import asyncio
+
+        from app.services.capabilities.exercise_retrieval import (
+            ExerciseRetrievalRequest,
+            detect_question_only_request,
+        )
+
+        decision = await asyncio.to_thread(
+            detect_question_only_request,
+            ExerciseRetrievalRequest(question=question),
+            history_messages,
+        )
+        if not decision.recognized or not decision.sliced_content:
+            logger.debug("question_only_preempt_not_applicable reason=%s", decision.reason)
+            return
+
+        # بثّ تدريجي بمقاطع صغيرة (تأثير الكتابة) دون تغيير المحتوى.
+        content = decision.sliced_content
+        step = 160
+        for start in range(0, len(content), step):
+            yield content[start : start + step]
+
+    async def _stage_question_only(self, ctx: TurnContext) -> AsyncGenerator[dict | str, None]:
         """شريحة السؤال المرقّم (ISS-112) — اقتطاع حتمي من النص الرسمي، صفر LLM."""
         question = ctx.question
         history_messages = ctx.history_messages
@@ -259,9 +296,7 @@ class TurnPreemptsDeterministicMixin:
         # ─────────────────────────────────────────────────────────────────────
         qo_streamed_chars = 0
         try:
-            async for chunk in self._stream_question_only_response(
-                question, history_messages
-            ):
+            async for chunk in self._stream_question_only_response(question, history_messages):
                 if not chunk:
                     continue
                 qo_streamed_chars += len(chunk)
@@ -289,9 +324,7 @@ class TurnPreemptsDeterministicMixin:
             ctx.turn_complete = True
             return
 
-    async def _stage_computational(
-        self, ctx: TurnContext
-    ) -> AsyncGenerator[dict | str, None]:
+    async def _stage_computational(self, ctx: TurnContext) -> AsyncGenerator[dict | str, None]:
         """الإجابة الحسابية الحتمية للاحتمالات (D-143/ISS-117) — قبل سُلّم الحادثة A."""
         question = ctx.question
         history_messages = ctx.history_messages
@@ -301,27 +334,19 @@ class TurnPreemptsDeterministicMixin:
         # الكرات)؛ الحوادث غير المنمذجة (C/D/X/الأمل/الشرطي) ⇒ تأجيل حتمي صادق يُبعدها عن A.
         # صفر LLM في مسار الرياضيات (نقد المالك #1). يكسر اختطاف المصفوفة للأسئلة الحسابية.
         # ─────────────────────────────────────────────────────────────────────
-        _comp = await self._build_probability_computational_answer(
-            question, history_messages
-        )
+        _comp = await self._build_probability_computational_answer(question, history_messages)
         if _comp is not None:
             _comp_text, _comp_event = _comp
             # D-143 (RC-4): لا تُعَد الإجابة الحسابية نفسها حرفياً عند تكرار السؤال. عند
             # التكرار نتقدّم لتمثيلٍ حتميّ **مختلف** (تخصيص بيداغوجي، نقد المالك #2) ثم
             # لمُوجِّه تقدّم — صفر LLM، صفر تكرار حرفي. لو استُنفِدت كلّها ⇒ نُسلّم للطبقة التالية.
             _comp_outcome = (
-                "correct_event"
-                if _comp_event in ("event_b", "combinations")
-                else "deferred"
+                "correct_event" if _comp_event in ("event_b", "combinations") else "deferred"
             )
             _comp_emit = True
             if self._recently_emitted(_comp_text, history_messages):
-                _comp_var = self._probability_computational_variant(
-                    _comp_event, history_messages
-                )
-                if _comp_var and not self._recently_emitted(
-                    _comp_var, history_messages
-                ):
+                _comp_var = self._probability_computational_variant(_comp_event, history_messages)
+                if _comp_var and not self._recently_emitted(_comp_var, history_messages):
                     _comp_text, _comp_outcome = _comp_var, "advanced"
                 else:
                     _comp_adv = self._probability_computational_advance_prompt()
