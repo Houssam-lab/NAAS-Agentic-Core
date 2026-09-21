@@ -1,16 +1,15 @@
 {
   "$schema_version": 1,
-  "packet_id": "CAP-2026-09-21-docs-hard-currency-workworld",
+  "packet_id": "CAP-2026-09-21-research-cbam-algeria",
   "status": "READY_FOR_GATE",
   "decision": "D-277",
-  "decision_of_change": "لا قرار حوكميّ جديد — دفعةٌ توثيقيّة/بحثيّة: ملفُّ تواصلٍ جراحيّ لأهدافِ الفوترة الإلكترونيّة الفرنسيّة (+dossier وCSV)، ودراسةُ آلياتِ العملة الصعبة من الجزائر بأربعة ملفات، وفيها فارضٌ محليٌّ واحد (`verify.py`) يُشغَّل يدوياً بلا شبكة. لا مساسَ بـ`app/` ولا `microservices/` ولا بخطوةِ CI.",
+  "decision_of_change": "لا قرار حوكميّ جديد — دفعةٌ بحثيّة/توثيقيّة فقط: حزمةُ بحثٍ (سبعُ وثائق) عن شراكةِ تحقّقِ MACF/CBAM في الجزائر (خريطةُ سوقٍ من 14 منشأةً، دليلُ مكالمة، استراتيجيةُ إقناع، README)، مع تسجيلِ ثلاثةِ ملفاتِ docx كأصولٍ ذاتيةِ الصنع في سجلّ براءة الحقوق (ADR-017). لا مساسَ بـ`app/` ولا `microservices/` ولا بخطوةِ CI.",
   "standards": [
     "free-programming-books",
     "system-design-primer"
   ],
   "evidence": [
     "anae-service-export-fx-100",
-    "ba-instruction-06-2021-retention",
     "ba-reglement-26-02-repatriation",
     "eu-gdpr-art-28-processor-terms"
   ],
@@ -18,67 +17,66 @@
     {
       "standard": "free-programming-books",
       "paths": [
-        "studies/dz-hard-currency-work-world/claims_2026-09-21.csv",
-        "studies/dz-hard-currency-work-world/channels_2026-09-21.csv",
-        "studies/dz-hard-currency-work-world/verify.py"
+        "research/cbam_algeria/README.md",
+        "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx"
       ],
-      "gate": "python3 studies/dz-hard-currency-work-world/verify.py",
-      "application_ar": "نمطُ الإحالةِ لا النسخ: لا يعيشُ رقمٌ في النثرِ بلا صفٍّ يحملُه بمصدرِه وتاريخِه ونوعِ دليلِه ودرجةِ ثقتِه — والوثيقةُ تُحيلُ إلى السجلِّ ولا تُنشئُ رقماً موازياً. والفارضُ يمنعُ الصنفَ الذي تمنعُه هذه المدرسةُ في الفهارس: مدخلٌ بلا إسناد. والفرقُ المقصودُ أنّ السجلَّ هنا لا يسردُ كتباً بل ادّعاءاتٍ قابلةً للكسر، فصار «الإسنادُ» شرطاً بنيوياً لا تنسيقاً: نوعٌ خارجُ السُّلَّمِ المغلقِ ⇒ فشل، وادّعاءٌ بلا تاريخٍ ⇒ فشل، وبندٌ مفتوحٌ بثقةٍ عاليةٍ ⇒ فشل."
+      "gate": "python3 scripts/fitness/check_asset_license_clearance.py",
+      "application_ar": "نمطُ الإحالةِ لا النسخ: كلُّ رقمٍ في خريطةِ السوقِ (سعاتُ المنشآت، أحجامُ التصدير، حالةُ الاعتماد) مُحالٌ إلى مصدرٍ عامٍّ مُسمًّى في ذيلِ الوثيقة، وتُعلَنُ الأرقامُ صراحةً «تقديراتٍ من مصادر عامة تُراجَع مع المشغّلين». ولا يُنسَخُ محتوى طرفٍ ثالث: الوثائقُ نصٌّ أصليّ، ولذلك سُجِّلت في `ASSET_LICENSE_CLEARANCE.json` بتوزيع OWN_WORK_MIT لا بحجاب."
     },
     {
       "standard": "system-design-primer",
       "paths": [
-        "studies/dz-hard-currency-work-world/README.md",
-        "studies/dz-hard-currency-work-world/verify.py",
-        "docs/commercial/FR_EINVOICING_TARGET_CONTACT_DOSSIER.md"
+        "research/cbam_algeria/README.md",
+        "docs/governance/ASSET_LICENSE_CLEARANCE.json"
       ],
       "gate": "python3 scripts/fitness/check_documentation_contract.py",
-      "application_ar": "فصلُ الطبقاتِ بقوّتِها: السجلُّ (CSV) يصف، والفارضُ (`verify.py`) يحجُب، وصفحةُ القرارِ (README §0) تقرأ — ولا تُنسخُ حالةٌ تشغيليّةٌ إلى وثيقة. والدليلُ على أنّ الحجبَ واقعٌ لا مُدّعًى: كلُّ رقمٍ مشتقٍّ مُعلَنٍ يُعادُ حسابُه من مدخلاتِه، ورقمٌ مُعدَّلٌ يدوياً ينكسرُ فوراً. وحدُّ هذا القياسِ معلَنٌ في رأسِ الملف: الفارضُ يفحصُ البنيةَ والحساب، ولا يدّعي التحقّقَ من صحةِ المصادرِ نفسِها (لا شبكةَ في الفارض) — لأنّ ادّعاءَ ما لا يُقاس هو الصنفُ الذي وُجدتْ هذه البوّاباتُ لمنعِه."
+      "application_ar": "فصلُ الطبقاتِ: وثيقةٌ خارجيةٌ تُشارَك مع الشريك (خريطةُ السوق)، ووثيقتان داخليتان لا تُرسَلان (دليلُ المكالمة والاستراتيجية)، وREADME يقرأُ الحزمةَ ويُعلنُ الجمهورَ المقصودَ لكلِّ ملف. والفارضُ القائمُ (`check_asset_license_clearance.py`) يحجبُ أيَّ ملفٍّ ثنائيٍّ بلا سجلِّ توزيع — وقد أُطعِمَ السجلُّ بدلَ الالتفافِ عليه."
     }
   ],
   "production": {
     "owner": "governance-commercial-research",
     "status": "DOCS_AND_RESEARCH_ONLY_NO_RUNTIME_PATH",
     "interfaces": [
-      "docs/commercial/FR_EINVOICING_TARGET_CONTACT_DOSSIER.md — 30 هدفاً في 6 طبقات، لكلٍّ هويّتُه وقناةُ تواصلِه المهنيّةُ العامّةُ ودورُه وخطّافُه بالفرنسيّة، مع 4 جهاتٍ مُستبعَدةٍ لعلمِ اعتراضٍ RNE.",
-      "docs/commercial/FR_EINVOICING_TARGETS_2026-09-21.csv — 34 صفاً (30 هدفاً + X1–X4) بمخطّطِ متابعةٍ من 18 عموداً: مصدرُ الحقيقةِ للتواصلِ لا الوثيقة.",
-      "studies/dz-hard-currency-work-world/README.md — صفحةُ قرارٍ + آلياتُ الصرفِ والقنوات + خطةُ 30 يوماً + فجواتٌ مفتوحةٌ مُسمّاة.",
-      "studies/dz-hard-currency-work-world/claims_2026-09-21.csv — 46 ادّعاءً بمصدرٍ وتاريخٍ ونوعِ دليلٍ ودرجةِ ثقة؛ وحدةُ الحقيقةِ للأرقام.",
-      "studies/dz-hard-currency-work-world/channels_2026-09-21.csv — 14 قناةَ دفعٍ بحالتِها المعلَنةِ وفخِّها المكتوب.",
-      "studies/dz-hard-currency-work-world/verify.py — فارضٌ يدويٌّ stdlib يقرأ ملفَّيه المجاورَين، يُعادُ حسابُ كلِّ رقمٍ مشتقٍّ فيه، ويعودُ 1 بقائمةِ انتهاكاتٍ صريحة."
+      "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx — خريطةُ سوقٍ من 14 منشأةً جزائريةً في نطاقِ CBAM (أسمدة/حديد/إسمنت) بأولوياتٍ، ونموذجُ تعاونٍ من طبقتين (إحالة + مدقّق محليّ)، وخطواتٌ تالية.",
+      "research/cbam_algeria/Call_Playbook_AR.docx — دليلُ مكالمةٍ داخليّ: سيناريو، أسئلة، نطاقاتُ تفاوض، خطوطٌ حمراء.",
+      "research/cbam_algeria/Persuasion_Strategy_AR.docx — استراتيجيةٌ داخليّة: نقاطُ ضغطِ الشريك، خمسُ رافعات، جُملٌ مفتاحية، خطةُ 30 يوماً.",
+      "research/cbam_algeria/README.md — فهرسُ الحزمةِ والجمهورُ المقصودُ والتواريخُ المفتاحية.",
+      "docs/governance/ASSET_LICENSE_CLEARANCE.json — ثلاثةُ صفوفٍ جديدةٍ في `tracked_binary_artifacts` (own_work_document / OWN_WORK_MIT).",
+      "research/cbam_algeria/Note_Concept_Ministre_MACF.docx — مذكرةُ مفهومٍ وزاريةٌ بالفرنسية: ثلاثةُ وقائع، تكلفةُ الفجوة (140–230 مليون €/سنة)، نافذةُ 12 شهراً، برنامجٌ من ثلاثِ مكوّنات، ثلاثةُ طلباتٍ بلا ميزانية.",
+      "research/cbam_algeria/Intelligence_Dossier_AR.docx — ملفٌّ استخباراتيٌّ داخليّ: نتيجةٌ حاسمةٌ عن سُمعةِ الشريك (قضية EPPO 2023)، خريطةُ المنظّمين والمنافسين والمنشآت والقيادات، وخطةُ عملٍ معدَّلة (شريك ثانٍ موازٍ).",
+      "research/cbam_algeria/Ecosystem_Map_AR.docx — خريطةُ المنظومة الكاملة خارج الشريك البلغاري: هيئات الاعتماد الأوروبية، المحقّقون الدوليون، فاعلو الجزائر (GIZ TaqatHy+ مؤتمر CBAM فبراير 2026)، نماذج المغرب/تركيا/مصر، وترتيبُ الخطوات المعدَّل.",
+      "research/cbam_algeria/Contact_Plan_AR.docx — خطةُ الاتصال: تقييمُ الفرصة (40–50%)، الجهاتُ الثلاث بالترتيب (Green and Fair → CRE عنابة → الوزير)، بياناتُ اتصال CRE، رسالةٌ فرنسيةٌ جاهزة، مقارنةُ المحقّقين البدلاء."
     ],
-    "failure_behavior_ar": "`verify.py` يعودُ 1 بقائمةٍ صريحةٍ عند: رقمٍ مشتقٍّ لا يُعادُ حسابُه من مدخلاتِه · ادّعاءٍ بلا مصدرٍ أو تاريخٍ أو نوعِ دليلٍ من السُّلَّمِ المغلق · قناةِ دفعٍ بلا فخٍّ معلَنٍ أو بحالةٍ خارجِ السُّلَّم · أو تناقضٍ داخليٍّ (حالةٌ «ممنوعة» مع توفّرٍ مُعلَن). ولا يُصحّحُ الفارضُ شيئاً بنفسِه: يُفشلُ فقط. وفي CI: لا خطوةَ جديدة — الفارضُ يدويٌّ بقرارٍ مكتوبٍ في رأسِه (ربطُه يُحوّلُ كلَّ تحديثِ سعرِ صرفٍ إلى PR).",
-    "observability_ar": "لا خطَّ تشغيليّاً جديداً يُقاس. المُخرَجُ الطرفيُّ: عددُ الادّعاءات، عددُ الأرقامِ المشتقّةِ المُعادِ حسابُها، والأرضيةُ المحسوبةُ (سقفُ ANAE باليورو · فارقُ السوقِ الموازي · خسارةُ التحويلِ الرسميّ). والبوّاباتُ القائمةُ تُشغَّلُ محلياً عبر `make gates`؛ هذه الدفعةُ لا تُضيفُ زمناً إلى CIّ.",
-    "security_boundary_ar": "لا أسرارَ ولا مفاتيحَ ولا بياناتٍ شخصيّة: جهاتُ الاتصالِ في الملفِّ التجاريّ مهنيّةٌ منشورةٌ طوعاً على مواقعِ الجهاتِ والسجلّاتِ العامّة، ولكلِّ صفٍّ رابطُ مصدرِه وتاريخُ التقاطِه. ولا شبكةَ في الفارضِ ولا في CI: القراءةُ من المنبعِ إجراءٌ مؤرَّخٌ ينفّذُه إنسانٌ، لا ادّعاءٌ يُقاسُ آلياً. والدفعةُ لا تلمسُ `app/` ولا `microservices/` ولا أيَّ مسارِ بياناتِ عملاء.",
-    "rollback_ar": "حذفُ `studies/dz-hard-currency-work-world/` وملفَّي `docs/commercial/FR_EINVOICING_*` وحدَهما — لا شيءَ آخرَ يشيرُ إليهما، والفارضُ لا يقرأُ إلا ملفَّيه المجاورَين. لا حذفَ ولا استبدالَ صامتَ لأيّ ملفٍّ قائم: الدفعةُ إضافةٌ خالصة.",
     "runtime_evidence_paths": [
-      "studies/dz-hard-currency-work-world/verify.py",
-      "studies/dz-hard-currency-work-world/claims_2026-09-21.csv",
-      "studies/dz-hard-currency-work-world/channels_2026-09-21.csv"
-    ]
+      "research/cbam_algeria/README.md",
+      "docs/governance/ASSET_LICENSE_CLEARANCE.json"
+    ],
+    "failure_behavior_ar": "لا خطَّ تشغيليّاً. الفشلُ الوحيدُ الممكنُ هو فشلُ بوّابةِ براءةِ الحقوقِ إذا أُضيفَ ملفٌّ ثنائيٌّ بلا سجلّ — وقد جُرِّبَ ذلك فعلاً في هذه الدفعةِ وأُصلِحَ بإطعامِ السجلّ لا بتعطيلِ البوّابة.",
+    "observability_ar": "لا شيءَ يُقاس وقتَ التشغيل. البوّاباتُ القائمةُ تُشغَّل محلياً؛ الدفعةُ لا تُضيفُ زمناً إلى CI.",
+    "security_boundary_ar": "لا أسرارَ ولا مفاتيحَ ولا بياناتِ عملاء: الوثائقُ تذكرُ منشآتٍ صناعيةً بأسمائها العامّةِ وأرقاماً منشورةً فقط، ولا تحوي أيَّ بياناتِ انبعاثاتٍ حقيقيةً أو مراسلاتٍ خاصّةً (رسائلُ الشريكِ لم تُودَع في الشجرة).",
+    "rollback_ar": "التراجعُ = git revert للدفعةِ كاملةً: تُحذَفُ الملفاتُ الأربعةُ من `research/cbam_algeria/` وتُزالُ الصفوفُ الثلاثةُ من `tracked_binary_artifacts`؛ لا حالةَ تشغيلٍ ولا هجرةَ بياناتٍ تُعكَس."
   },
   "commercial_trace": {
     "offer_ids": [
-      "niche-rlhf-data"
+      "eu-ai-act-compliance"
     ],
-    "customer_problem_ar": "العاملُ من الجزائرِ يُختارُ له مسارُ القبضِ بالحظّ لا بالحساب: منصّاتٌ تعلنُ «10–25 $/ساعة» وتدفعُ 2.20 $ مقيسةً، ومنصّاتٌ لا تدفعُ إلا PayPal (مسدودٌ من الجزائر) فيصيرُ العملُ مُستحيلَ التحصيلِ بعد إنجازِه، ورسميٌّ 154.19 DZD/€ مقابل ~276.67 موازي — فالتحويلُ الرسميُّ يفقدُ 44% من القيمة، والمخالفةُ (الأمر 96-22) حبسٌ 2–7 سنوات وغرامةٌ لا تقلُّ عن ضعفِ المبلغ. المشكلةُ ليست غيابَ العمل، بل غيابَ ترتيبٍ يمنعُ العملَ الصحيحَ على قناةٍ ميتة.",
-    "value_hypothesis_ar": "فرضيةُ القيمة (🟡 لم تُختبَر بالبيع): قاعدةُ «القناةُ تسبقُ العرض» تُلغي شهوراً من العملِ على قنواتٍ مسدودة، وربطُ الإعفاءِ الضريبيِّ بوثيقةِ البنك (لا بالمحاسب) يمنعُ خسارةَ أهليةٍ لا تُستعاد بأثرٍ رجعي، وفارقُ 1.2–4% في القناةِ يتجاوزُ الضريبةَ المباشرةَ على سقفِ ANAE بخمسةَ عشرَ إلى خمسينَ ضعفاً. المقياسُ الوحيدُ المقبول: ≥1 دفعةٍ مقدَّمةٍ على حساب عملةٍ حقيقي. الحالةُ اليوم: صفرُ رسالةٍ مُرسَلة، صفرُ عرضٍ مُوقَّع، صفرُ فاتورة، صفرُ تحصيل — وهذا مكتوبٌ في الوثيقةِ نفسِها لا مُخفى.",
-    "foreign_currency_path_ar": "بطاقةُ ANAE (3 وثائق) ⇒ حسابٌ تجاريٌّ + حسابُ عملة (تعليمةُ بنكِ الجزائر 2024/01) ⇒ استلامُ 100% من عائداتِ تصديرِ الخدماتِ بالعملة (تعليمة 06-2021) ⇒ إعفاءٌ ضريبيٌّ دائمٌ بالنسبةِ لرقمِ الأعمالِ بالعملةِ مشروطٌ بوثيقةِ إيداعٍ بنكي. والقناةُ العاملةُ المقيسة: Payoneer/Deel/Malt — مع بقاءِ الإيرادِ بالعملةِ وعدمِ تحويلِه إلى دينارٍ إلا للحاجةِ الفعليّة. والسقفُ 5,000,000 DZD = 32,427.5 €/سنة يجعله سلّمَ اختبارٍ لا كيانَ أعمال — والطابقُ الأعلى (EURL في نظامِ التصدير) هو المسارُ عند التجاوز.",
-    "foundation_exception_ar": "استثناءٌ تأسيسيٌّ معلَن: هذه الدفعةُ لا تنتجُ قدرةً تشغيليّةً ولا إيراداً، ولا تُعلنُ جاهزيّةً إنتاجيّة. والصلةُ بسطرِ الكتالوج `niche-rlhf-data` صلةُ بحثٍ لا صلةُ تسليم: الدراسةُ تقيسُ منصّاتِ تقييم/بياناتِ العربية وتكشفُ الفارقَ بين المعلَنِ والمقيس. أمّا خدمةُ تنظيفِ بياناتِ الفوترةِ الإلكترونيّةِ الفرنسيّة التي يخدمُها الملفُّ التجاريُّ فليست بعدُ سطراً في الكتالوج — وهذا نقصٌ مُسجَّلٌ هنا، لا يُتجاوزُ بصمت."
+    "customer_problem_ar": "هيئةُ تحقّقٍ أوروبيةٌ معتمدةٌ (EU ETS) تحتاجُ قدرةً ميدانيةً في الجزائرِ لنافذةِ التحقّقِ الأولى في CBAM (جانفي–سبتمبر 2027) حيث الزيارةُ الميدانيةُ إلزاميةٌ ولا مكتبَ لأيِّ محقّقٍ في البلد؛ والمصدِّرُ الجزائريُّ يدفعُ علاوةَ قيمٍ افتراضيةٍ متصاعدةً (10%→30%) بلا خصمِ سعرِ كربونٍ محليّ.",
+    "value_hypothesis_ar": "تحويلُ الامتثالِ التنظيميِّ الأوروبيِّ (هنا: CBAM بدلَ AI Act — العرضُ الأقربُ في الكتالوج) إلى خدمةٍ مدفوعةٍ بالعملةِ الصعبةِ من الجزائر: طبقةُ إحالةٍ + طبقةُ تدقيقٍ محليٍّ تحت اعتمادِ الشريك. اتفاقُ مدقّقٍ بأجرٍ يوميٍّ باليورو + رسومُ إحالةٍ على عقودِ التحقّقِ (نطاقاتٌ مرجعيةٌ داخلَ دليلِ المكالمة، وتُعلَنُ تقديراتٍ لا عروضاً).",
+    "foreign_currency_path_ar": "أجرُ التدقيقِ ورسومُ الإحالةِ تُفوتَرُ باليورو من كيانٍ جزائريٍّ لهيئةِ التحقّقِ البلغارية (تصديرُ خدمات)؛ القناةُ القانونيةُ هي حسابُ العملةِ الصعبةِ للمصدِّر وفقَ إطارِ بنكِ الجزائر (انظر الدليلَ المُحال `ba-reglement-26-02-repatriation`). لا يُقبَلُ سعرٌ شاملٌ للمصاريف ولا دفعٌ مسبقٌ منّا للشريك.",
+    "foundation_exception_ar": "لا استثناءَ تأسيسياً مطلوباً: الدفعةُ لا تُعدِّلُ عرضاً في الكتالوج ولا تُنشئُ عرضاً جديداً؛ تُحالُ على أقربِ عرضٍ قائمٍ (`eu-ai-act-compliance`، حوكمةُ الامتثالِ الأوروبي) بوصفِها تطبيقاً بحثياً له على لائحةٍ أوروبيةٍ أخرى (CBAM)، وإن لزمَ عرضٌ مستقلٌّ لاحقاً فيُفتَحُ بقرارٍ منفصل."
   },
   "deletions": {
     "count": 0,
     "paths": [],
-    "policy_ar": "صفرُ حذفٍ على مستوى الملفات: الدفعةُ إضافةُ 6 ملفاتٍ جديدةٍ بالكامل، والتعديلُ الوحيدُ على ملفٍّ قائمٍ هو هذا الـpacket نفسُه (يُستثنى من بصمةِ التغيير بحكمِ التصميم). لا خطَّ عرضٍ مُحي، ولا سطرَ عقيدةٍ مُحي، ولا مصدرَ غُيّرت حالتُه."
+    "policy_ar": "صفرُ حذفٍ: الدفعةُ إضافةُ 4 ملفاتٍ جديدةٍ وتعديلٌ إضافيٌّ (صفوفٌ جديدةٌ فقط) على سجلِّ براءةِ الحقوق، إضافةً إلى هذا الـpacket (مستثنًى من البصمة بحكمِ التصميم). حُذِفَ من الفرعِ سكربتا توليدٍ مؤقّتان قبل أن يبلغا `main` فلا يُعدّان حذفاً بالنسبةِ للقاعدة."
   },
   "verification": {
     "result": "PASS",
     "commands": [
-      "python3 studies/dz-hard-currency-work-world/verify.py  # PASS — 46 ادّعاءً (منها 6 أرقام مشتقّة أُعيد حسابها حتمياً) · 14 قناة",
-      "python3 -m ruff check .  # All checks passed! (ruff==0.14.0 — نفس الإصدار المثبّت في خطوة lint)",
-      "python3 -m ruff format --check .  # 2206 files already formatted",
-      "python3 scripts/fitness/check_documentation_contract.py  # ✅ 51 وثيقة حية والروابط والمسارات متسقة",
-      "python3 scripts/fitness/check_code_acceptance.py  # PASS (ببصمة diff محدَّثة من نفس أمر CI)"
+      "python3 scripts/fitness/check_asset_license_clearance.py  # PASS — tracked_binary_artifacts=7",
+      "python3 scripts/fitness/check_documentation_contract.py  # PASS",
+      "python3 scripts/ci_guardrails.py  # PASS",
+      "CODE_ACCEPTANCE_BASE_SHA=origin/main python3 scripts/fitness/check_code_acceptance.py  # PASS"
     ]
   },
   "curriculum": {
@@ -160,24 +158,29 @@
     "owner": "curriculum-governance"
   },
   "changed_paths": [
-    "docs/commercial/FR_EINVOICING_TARGET_CONTACT_DOSSIER.md",
-    "docs/commercial/FR_EINVOICING_TARGETS_2026-09-21.csv",
-    "studies/dz-hard-currency-work-world/README.md",
-    "studies/dz-hard-currency-work-world/channels_2026-09-21.csv",
-    "studies/dz-hard-currency-work-world/claims_2026-09-21.csv",
-    "studies/dz-hard-currency-work-world/verify.py"
+    "docs/governance/ASSET_LICENSE_CLEARANCE.json",
+    "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx",
+    "research/cbam_algeria/Call_Playbook_AR.docx",
+    "research/cbam_algeria/Persuasion_Strategy_AR.docx",
+    "research/cbam_algeria/README.md",
+    "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
+    "research/cbam_algeria/Intelligence_Dossier_AR.docx",
+    "research/cbam_algeria/Ecosystem_Map_AR.docx",
+    "research/cbam_algeria/Contact_Plan_AR.docx"
   ],
   "git_change_snapshot": {
-    "base_ref": "e3f61a26a10ba51b837ee45fbfabd71778a69bcb",
+    "base_ref": "origin/main",
     "changed_paths_excluding_packet": [
-      "docs/commercial/FR_EINVOICING_TARGETS_2026-09-21.csv",
-      "docs/commercial/FR_EINVOICING_TARGET_CONTACT_DOSSIER.md",
-      "studies/dz-hard-currency-work-world/README.md",
-      "studies/dz-hard-currency-work-world/channels_2026-09-21.csv",
-      "studies/dz-hard-currency-work-world/claims_2026-09-21.csv",
-      "studies/dz-hard-currency-work-world/verify.py"
+      "docs/governance/ASSET_LICENSE_CLEARANCE.json",
+      "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx",
+      "research/cbam_algeria/Call_Playbook_AR.docx",
+      "research/cbam_algeria/Ecosystem_Map_AR.docx",
+      "research/cbam_algeria/Intelligence_Dossier_AR.docx",
+      "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
+      "research/cbam_algeria/Persuasion_Strategy_AR.docx",
+      "research/cbam_algeria/README.md"
     ],
-    "content_sha256_excluding_packet": "ec77a2969f930bdedeea9d60f45f87591ec3c22eed3565ea5e7d26ac0d328864",
+    "content_sha256_excluding_packet": "88b33571cb933487976fe9f21b3d0513c4a54faa4000e73ed4959b4a0351d068",
     "refreshed_on": "2026-09-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }

@@ -1825,6 +1825,69 @@
       "finding_ar": "أصلٌ مُولَّدٌ داخل المشروع (لقطةُ شاشةٍ أو صورةُ دليل)، لا محتوى طرفٍ ثالث.",
       "remediation_ar": "",
       "reviewed_on": "2026-09-16"
+    },
+    {
+      "path": "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx",
+      "kind": "own_work_document",
+      "size_bytes": 42738,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "وثيقةُ بحثٍ أُنتِجت داخل المشروع (خريطة سوق MACF/CBAM في الجزائر واقتراح شراكة)؛ نصٌّ أصليّ مع إحالاتٍ إلى مصادر عامة، لا محتوى طرفٍ ثالث منسوخ.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
+    },
+    {
+      "path": "research/cbam_algeria/Call_Playbook_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 40477,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "دليلُ مكالمةٍ داخليّ أُنتِج داخل المشروع (نصٌّ أصليّ بالعربية)، لا محتوى طرفٍ ثالث.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
+    },
+    {
+      "path": "research/cbam_algeria/Contact_Plan_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 41298,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "خطةُ اتصالٍ تشغيليةٌ أُنتِجت داخل المشروع: التقييم الصريح للفرصة، ترتيبُ الجهات الثلاث، بياناتُ اتصال CRE عنابة من مصادر عامة، ونصُّ رسالةٍ فرنسيةٍ أصليّ.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-22"
+    },
+    {
+      "path": "research/cbam_algeria/Ecosystem_Map_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 45228,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "خريطةُ منظومةٍ (OSINT) أُنتِجت داخل المشروع: المحقّقون الدوليون، هيئات الاعتماد، الفاعلون الجزائريون (GIZ/TaqatHy+، بعثة الاتحاد الأوروبي)، نماذج الجوار؛ نصٌّ أصليّ بإحالاتٍ إلى مصادر عامة.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-22"
+    },
+    {
+      "path": "research/cbam_algeria/Intelligence_Dossier_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 46862,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "ملفٌّ استخباراتيٌّ داخليّ (OSINT) أُنتِج داخل المشروع عن منظومة تحقّق CBAM: الشريك، المنظّمون، المنافسون، المنشآت الجزائرية؛ نصٌّ أصليّ بإحالاتٍ إلى مصادر عامة.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-22"
+    },
+    {
+      "path": "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
+      "kind": "own_work_document",
+      "size_bytes": 42549,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "مذكرةُ مفهومٍ وزاريةٌ بالفرنسية أُنتِجت داخل المشروع (برنامجٌ وطنيٌّ للجاهزية لـ MACF)؛ نصٌّ أصليّ مع إحالاتٍ إلى مصادر عامة، لا محتوى طرفٍ ثالث.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
+    },
+    {
+      "path": "research/cbam_algeria/Persuasion_Strategy_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 42808,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "وثيقةُ استراتيجيةٍ داخليّة أُنتِجت داخل المشروع (نصٌّ أصليّ بالعربية)، لا محتوى طرفٍ ثالث.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
     }
   ],
   "offer_clearance": [
