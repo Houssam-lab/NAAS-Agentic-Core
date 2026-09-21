@@ -3,7 +3,7 @@
   "packet_id": "CAP-2026-09-21-research-cbam-algeria",
   "status": "READY_FOR_GATE",
   "decision": "D-277",
-  "decision_of_change": "لا قرار حوكميّ جديد — دفعةٌ بحثيّة/توثيقيّة فقط: حزمةُ بحثٍ (ستُّ وثائق) عن شراكةِ تحقّقِ MACF/CBAM في الجزائر (خريطةُ سوقٍ من 14 منشأةً، دليلُ مكالمة، استراتيجيةُ إقناع، README)، مع تسجيلِ ثلاثةِ ملفاتِ docx كأصولٍ ذاتيةِ الصنع في سجلّ براءة الحقوق (ADR-017). لا مساسَ بـ`app/` ولا `microservices/` ولا بخطوةِ CI.",
+  "decision_of_change": "لا قرار حوكميّ جديد — دفعةٌ بحثيّة/توثيقيّة فقط: حزمةُ بحثٍ (سبعُ وثائق) عن شراكةِ تحقّقِ MACF/CBAM في الجزائر (خريطةُ سوقٍ من 14 منشأةً، دليلُ مكالمة، استراتيجيةُ إقناع، README)، مع تسجيلِ ثلاثةِ ملفاتِ docx كأصولٍ ذاتيةِ الصنع في سجلّ براءة الحقوق (ADR-017). لا مساسَ بـ`app/` ولا `microservices/` ولا بخطوةِ CI.",
   "standards": [
     "free-programming-books",
     "system-design-primer"
@@ -44,7 +44,8 @@
       "docs/governance/ASSET_LICENSE_CLEARANCE.json — ثلاثةُ صفوفٍ جديدةٍ في `tracked_binary_artifacts` (own_work_document / OWN_WORK_MIT).",
       "research/cbam_algeria/Note_Concept_Ministre_MACF.docx — مذكرةُ مفهومٍ وزاريةٌ بالفرنسية: ثلاثةُ وقائع، تكلفةُ الفجوة (140–230 مليون €/سنة)، نافذةُ 12 شهراً، برنامجٌ من ثلاثِ مكوّنات، ثلاثةُ طلباتٍ بلا ميزانية.",
       "research/cbam_algeria/Intelligence_Dossier_AR.docx — ملفٌّ استخباراتيٌّ داخليّ: نتيجةٌ حاسمةٌ عن سُمعةِ الشريك (قضية EPPO 2023)، خريطةُ المنظّمين والمنافسين والمنشآت والقيادات، وخطةُ عملٍ معدَّلة (شريك ثانٍ موازٍ).",
-      "research/cbam_algeria/Ecosystem_Map_AR.docx — خريطةُ المنظومة الكاملة خارج الشريك البلغاري: هيئات الاعتماد الأوروبية، المحقّقون الدوليون، فاعلو الجزائر (GIZ TaqatHy+ مؤتمر CBAM فبراير 2026)، نماذج المغرب/تركيا/مصر، وترتيبُ الخطوات المعدَّل."
+      "research/cbam_algeria/Ecosystem_Map_AR.docx — خريطةُ المنظومة الكاملة خارج الشريك البلغاري: هيئات الاعتماد الأوروبية، المحقّقون الدوليون، فاعلو الجزائر (GIZ TaqatHy+ مؤتمر CBAM فبراير 2026)، نماذج المغرب/تركيا/مصر، وترتيبُ الخطوات المعدَّل.",
+      "research/cbam_algeria/Contact_Plan_AR.docx — خطةُ الاتصال: تقييمُ الفرصة (40–50%)، الجهاتُ الثلاث بالترتيب (Green and Fair → CRE عنابة → الوزير)، بياناتُ اتصال CRE، رسالةٌ فرنسيةٌ جاهزة، مقارنةُ المحقّقين البدلاء."
     ],
     "runtime_evidence_paths": [
       "research/cbam_algeria/README.md",
@@ -164,7 +165,8 @@
     "research/cbam_algeria/README.md",
     "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
     "research/cbam_algeria/Intelligence_Dossier_AR.docx",
-    "research/cbam_algeria/Ecosystem_Map_AR.docx"
+    "research/cbam_algeria/Ecosystem_Map_AR.docx",
+    "research/cbam_algeria/Contact_Plan_AR.docx"
   ],
   "git_change_snapshot": {
     "base_ref": "origin/main",
@@ -178,7 +180,7 @@
       "research/cbam_algeria/Persuasion_Strategy_AR.docx",
       "research/cbam_algeria/README.md"
     ],
-    "content_sha256_excluding_packet": "00f8f234fd62add4fde3e0af204d69decc60f405b7d34329bb269640f7d9eb4c",
+    "content_sha256_excluding_packet": "88b33571cb933487976fe9f21b3d0513c4a54faa4000e73ed4959b4a0351d068",
     "refreshed_on": "2026-09-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
