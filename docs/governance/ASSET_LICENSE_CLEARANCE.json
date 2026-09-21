@@ -1845,9 +1845,18 @@
       "reviewed_on": "2026-09-21"
     },
     {
+      "path": "research/cbam_algeria/Intelligence_Dossier_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 46862,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "ملفٌّ استخباراتيٌّ داخليّ (OSINT) أُنتِج داخل المشروع عن منظومة تحقّق CBAM: الشريك، المنظّمون، المنافسون، المنشآت الجزائرية؛ نصٌّ أصليّ بإحالاتٍ إلى مصادر عامة.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-22"
+    },
+    {
       "path": "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
       "kind": "own_work_document",
-      "size_bytes": 42602,
+      "size_bytes": 42549,
       "distribution": "OWN_WORK_MIT",
       "finding_ar": "مذكرةُ مفهومٍ وزاريةٌ بالفرنسية أُنتِجت داخل المشروع (برنامجٌ وطنيٌّ للجاهزية لـ MACF)؛ نصٌّ أصليّ مع إحالاتٍ إلى مصادر عامة، لا محتوى طرفٍ ثالث.",
       "remediation_ar": "",
