@@ -1825,6 +1825,33 @@
       "finding_ar": "أصلٌ مُولَّدٌ داخل المشروع (لقطةُ شاشةٍ أو صورةُ دليل)، لا محتوى طرفٍ ثالث.",
       "remediation_ar": "",
       "reviewed_on": "2026-09-16"
+    },
+    {
+      "path": "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx",
+      "kind": "own_work_document",
+      "size_bytes": 42738,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "وثيقةُ بحثٍ أُنتِجت داخل المشروع (خريطة سوق MACF/CBAM في الجزائر واقتراح شراكة)؛ نصٌّ أصليّ مع إحالاتٍ إلى مصادر عامة، لا محتوى طرفٍ ثالث منسوخ.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
+    },
+    {
+      "path": "research/cbam_algeria/Call_Playbook_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 39671,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "دليلُ مكالمةٍ داخليّ أُنتِج داخل المشروع (نصٌّ أصليّ بالعربية)، لا محتوى طرفٍ ثالث.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
+    },
+    {
+      "path": "research/cbam_algeria/Persuasion_Strategy_AR.docx",
+      "kind": "own_work_document",
+      "size_bytes": 42808,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "وثيقةُ استراتيجيةٍ داخليّة أُنتِجت داخل المشروع (نصٌّ أصليّ بالعربية)، لا محتوى طرفٍ ثالث.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
     }
   ],
   "offer_clearance": [
