@@ -3,7 +3,7 @@
   "packet_id": "CAP-2026-09-21-research-cbam-algeria",
   "status": "READY_FOR_GATE",
   "decision": "D-277",
-  "decision_of_change": "لا قرار حوكميّ جديد — دفعةٌ بحثيّة/توثيقيّة فقط: حزمةُ بحثٍ (خمسُ وثائق) عن شراكةِ تحقّقِ MACF/CBAM في الجزائر (خريطةُ سوقٍ من 14 منشأةً، دليلُ مكالمة، استراتيجيةُ إقناع، README)، مع تسجيلِ ثلاثةِ ملفاتِ docx كأصولٍ ذاتيةِ الصنع في سجلّ براءة الحقوق (ADR-017). لا مساسَ بـ`app/` ولا `microservices/` ولا بخطوةِ CI.",
+  "decision_of_change": "لا قرار حوكميّ جديد — دفعةٌ بحثيّة/توثيقيّة فقط: حزمةُ بحثٍ (ستُّ وثائق) عن شراكةِ تحقّقِ MACF/CBAM في الجزائر (خريطةُ سوقٍ من 14 منشأةً، دليلُ مكالمة، استراتيجيةُ إقناع، README)، مع تسجيلِ ثلاثةِ ملفاتِ docx كأصولٍ ذاتيةِ الصنع في سجلّ براءة الحقوق (ADR-017). لا مساسَ بـ`app/` ولا `microservices/` ولا بخطوةِ CI.",
   "standards": [
     "free-programming-books",
     "system-design-primer"
@@ -43,7 +43,8 @@
       "research/cbam_algeria/README.md — فهرسُ الحزمةِ والجمهورُ المقصودُ والتواريخُ المفتاحية.",
       "docs/governance/ASSET_LICENSE_CLEARANCE.json — ثلاثةُ صفوفٍ جديدةٍ في `tracked_binary_artifacts` (own_work_document / OWN_WORK_MIT).",
       "research/cbam_algeria/Note_Concept_Ministre_MACF.docx — مذكرةُ مفهومٍ وزاريةٌ بالفرنسية: ثلاثةُ وقائع، تكلفةُ الفجوة (140–230 مليون €/سنة)، نافذةُ 12 شهراً، برنامجٌ من ثلاثِ مكوّنات، ثلاثةُ طلباتٍ بلا ميزانية.",
-      "research/cbam_algeria/Intelligence_Dossier_AR.docx — ملفٌّ استخباراتيٌّ داخليّ: نتيجةٌ حاسمةٌ عن سُمعةِ الشريك (قضية EPPO 2023)، خريطةُ المنظّمين والمنافسين والمنشآت والقيادات، وخطةُ عملٍ معدَّلة (شريك ثانٍ موازٍ)."
+      "research/cbam_algeria/Intelligence_Dossier_AR.docx — ملفٌّ استخباراتيٌّ داخليّ: نتيجةٌ حاسمةٌ عن سُمعةِ الشريك (قضية EPPO 2023)، خريطةُ المنظّمين والمنافسين والمنشآت والقيادات، وخطةُ عملٍ معدَّلة (شريك ثانٍ موازٍ).",
+      "research/cbam_algeria/Ecosystem_Map_AR.docx — خريطةُ المنظومة الكاملة خارج الشريك البلغاري: هيئات الاعتماد الأوروبية، المحقّقون الدوليون، فاعلو الجزائر (GIZ TaqatHy+ مؤتمر CBAM فبراير 2026)، نماذج المغرب/تركيا/مصر، وترتيبُ الخطوات المعدَّل."
     ],
     "runtime_evidence_paths": [
       "research/cbam_algeria/README.md",
@@ -162,7 +163,8 @@
     "research/cbam_algeria/Persuasion_Strategy_AR.docx",
     "research/cbam_algeria/README.md",
     "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
-    "research/cbam_algeria/Intelligence_Dossier_AR.docx"
+    "research/cbam_algeria/Intelligence_Dossier_AR.docx",
+    "research/cbam_algeria/Ecosystem_Map_AR.docx"
   ],
   "git_change_snapshot": {
     "base_ref": "origin/main",
@@ -170,11 +172,12 @@
       "docs/governance/ASSET_LICENSE_CLEARANCE.json",
       "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx",
       "research/cbam_algeria/Call_Playbook_AR.docx",
+      "research/cbam_algeria/Intelligence_Dossier_AR.docx",
       "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
       "research/cbam_algeria/Persuasion_Strategy_AR.docx",
       "research/cbam_algeria/README.md"
     ],
-    "content_sha256_excluding_packet": "c12663c598b25f32a735b142bfc14e7db02187e4e888a678e9608f358c650bb8",
+    "content_sha256_excluding_packet": "4b7a5e3e13d6f3bae838a866a4cc62fdde84f6f5105409baf06ecdf0b2d2bca3",
     "refreshed_on": "2026-09-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
