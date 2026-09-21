@@ -168,10 +168,11 @@
       "docs/governance/ASSET_LICENSE_CLEARANCE.json",
       "research/cbam_algeria/CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx",
       "research/cbam_algeria/Call_Playbook_AR.docx",
+      "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
       "research/cbam_algeria/Persuasion_Strategy_AR.docx",
       "research/cbam_algeria/README.md"
     ],
-    "content_sha256_excluding_packet": "2a867afbbedf7e0b8865ccbc32550c3febd3789c8a14c876a9a6b7910df0d959",
+    "content_sha256_excluding_packet": "a2f2242ee80ecab035229729e7eaffaf7625f66058a1e273774d6372a1ddfe2f",
     "refreshed_on": "2026-09-21",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
