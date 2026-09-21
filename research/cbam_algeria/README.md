@@ -7,6 +7,7 @@ Research package prepared for the partnership discussion with Green and Fair JSC
 |---|---|---|
 | `CBAM_Algeria_Market_Map_and_Partnership_Proposal.docx` | External (shared with partner) | Market map of 14 CBAM-exposed Algerian installations (fertilizers, steel, cement), commercial rationale, two-layer cooperation model, next steps |
 | `Call_Playbook_AR.docx` (دليل المكالمة الخاص) | Internal | Call playbook: minute-by-minute script, questions, negotiation ranges, red lines |
+| `Note_Concept_Ministre_MACF.docx` | External (Minister) | French 2-page concept note: national CBAM-readiness programme (startup vehicle + auditor academy + ALGERAC roadmap), exposure figures, 12-month window, three no-budget asks |
 | `Persuasion_Strategy_AR.docx` (استراتيجية الإقناع العميقة) | Internal | Deep persuasion strategy: partner's real pain points, 5 non-obvious levers, key sentences, 30-day plan |
 
 Key dates: call Wed 23 Sep 2026 15:30 Algiers; first CBAM verification window Jan–Sep 2027.

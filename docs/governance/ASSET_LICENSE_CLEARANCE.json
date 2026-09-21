@@ -1838,9 +1838,18 @@
     {
       "path": "research/cbam_algeria/Call_Playbook_AR.docx",
       "kind": "own_work_document",
-      "size_bytes": 39671,
+      "size_bytes": 40477,
       "distribution": "OWN_WORK_MIT",
       "finding_ar": "دليلُ مكالمةٍ داخليّ أُنتِج داخل المشروع (نصٌّ أصليّ بالعربية)، لا محتوى طرفٍ ثالث.",
+      "remediation_ar": "",
+      "reviewed_on": "2026-09-21"
+    },
+    {
+      "path": "research/cbam_algeria/Note_Concept_Ministre_MACF.docx",
+      "kind": "own_work_document",
+      "size_bytes": 42446,
+      "distribution": "OWN_WORK_MIT",
+      "finding_ar": "مذكرةُ مفهومٍ وزاريةٌ بالفرنسية أُنتِجت داخل المشروع (برنامجٌ وطنيٌّ للجاهزية لـ MACF)؛ نصٌّ أصليّ مع إحالاتٍ إلى مصادر عامة، لا محتوى طرفٍ ثالث.",
       "remediation_ar": "",
       "reviewed_on": "2026-09-21"
     },
