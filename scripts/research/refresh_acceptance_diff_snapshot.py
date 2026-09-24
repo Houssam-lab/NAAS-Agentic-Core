@@ -31,7 +31,8 @@ PACKET_REL = "docs/changes/CURRENT_CODE_ACCEPTANCE_PACKET.json"
 
 
 def run(args: list[str]) -> str:
-    completed = subprocess.run(args, cwd=ROOT, check=True, capture_output=True, text=True)
+    cmd = ["git", "-c", "core.quotepath=false", *args[1:]] if args and args[0] == "git" else args
+    completed = subprocess.run(cmd, cwd=ROOT, check=True, capture_output=True, text=True)
     return completed.stdout
 
 
