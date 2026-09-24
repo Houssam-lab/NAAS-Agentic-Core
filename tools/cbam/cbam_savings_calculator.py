@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 cbam_savings_calculator.py — Calculateur d'économies CBAM et arbitrage réglementaire
 pour les importateurs européens de métaux, ciment et engrais depuis l'Algérie.
@@ -92,7 +91,9 @@ def calculate_cbam_impact(
     exposure_factor = 1.0 - CBAM_FACTOR_2026
 
     # Émissions soumises au rachat de certificats après déduction de l'allocation gratuite
-    net_emissions_default_per_t = max(0.0, default_emission - bm * CBAM_FACTOR_2026) * exposure_factor
+    net_emissions_default_per_t = (
+        max(0.0, default_emission - bm * CBAM_FACTOR_2026) * exposure_factor
+    )
     net_emissions_actual_per_t = max(0.0, actual_emission - bm * CBAM_FACTOR_2026) * exposure_factor
 
     # Coût total certificats CBAM
@@ -136,7 +137,7 @@ def format_report(res: dict) -> str:
         "1. COMPARAISON DE L'EMPREINTE CARBONE (SEE) :",
         f"   - Valeur forfaitaire par défaut UE (avec markup) : {res['emission_defaut_ue']:.3f} tCO2 / t",
         f"   - Données réelles certifiées de l'installation  : {res['emission_reelle_dz']:.3f} tCO2 / t",
-        f"   => Réduction nette de l'empreinte carbone       : {res['gain_carbone_par_tonne']:.3f} tCO2 / t (-{(res['gain_carbone_par_tonne']/res['emission_defaut_ue']*100):.1f}%)",
+        f"   => Réduction nette de l'empreinte carbone       : {res['gain_carbone_par_tonne']:.3f} tCO2 / t (-{(res['gain_carbone_par_tonne'] / res['emission_defaut_ue'] * 100):.1f}%)",
         "--------------------------------------------------------------------------------",
         "2. IMPACT FINANCIER SUR LES CERTIFICATS CBAM (Exercice 2026) :",
         f"   - Coût CBAM avec valeurs par défaut forfaitaires : {res['cout_cbam_defaut_eur']:,.2f} €",
@@ -158,19 +159,32 @@ def format_report(res: dict) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Calculateur d'arbitrage et d'économies CBAM Algérie → Europe")
-    parser.add_argument("--hs", help="Code SH du produit (ex: 72071114, 72142000, 31021000, 28141000, 25231000)")
+    parser = argparse.ArgumentParser(
+        description="Calculateur d'arbitrage et d'économies CBAM Algérie → Europe"
+    )
+    parser.add_argument(
+        "--hs", help="Code SH du produit (ex: 72071114, 72142000, 31021000, 28141000, 25231000)"
+    )
     parser.add_argument("--tonnes", type=float, help="Volume importé en tonnes")
     parser.add_argument("--see-actual", type=float, help="Émission réelle mesurée (optionnel)")
-    parser.add_argument("--price", type=float, default=DEFAULT_CERT_PRICE_EUR, help="Prix du certificat CO2 (défaut: 75 €)")
-    parser.add_argument("--list-goods", action="store_true", help="Lister les produits industriels supportés")
+    parser.add_argument(
+        "--price",
+        type=float,
+        default=DEFAULT_CERT_PRICE_EUR,
+        help="Prix du certificat CO2 (défaut: 75 €)",
+    )
+    parser.add_argument(
+        "--list-goods", action="store_true", help="Lister les produits industriels supportés"
+    )
 
     args = parser.parse_args()
 
     if args.list_goods:
         print("Produits industriels et codes SH modélisés :")
         for code, info in CBAM_BENCHMARKS.items():
-            print(f"  - {code} : {info['nom']} [{info['secteur']}] -> Source: {info['installation_type']}")
+            print(
+                f"  - {code} : {info['nom']} [{info['secteur']}] -> Source: {info['installation_type']}"
+            )
         return 0
 
     if not args.hs or args.tonnes is None:

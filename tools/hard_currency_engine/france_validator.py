@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module France Validator — Hard Currency Engine
 Audit et assainissement des référentiels clients/fournisseurs pour la réforme de la facturation électronique française (RFE).
@@ -70,6 +69,57 @@ def tva_fr_check(tva: str) -> tuple[bool, str, str]:
     return True, t, "OK"
 
 
+def _validate_french_row(
+    row: dict, cols: dict, line_no: int, seen_dedup: dict
+) -> tuple[list[str], bool, bool, bool]:
+    line_errors = []
+    nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+    siren_val = row.get(cols["siren"], "") if cols["siren"] else ""
+    siret_val = row.get(cols["siret"], "") if cols["siret"] else ""
+    tva_val = row.get(cols["tva"], "") if cols["tva"] else ""
+    cp_val = row.get(cols["cp"], "") if cols["cp"] else ""
+
+    err_siren = False
+    err_siret = False
+    err_tva = False
+
+    if siren_val:
+        ok_s, _, err_s = siren_check(siren_val)
+        if not ok_s:
+            err_siren = True
+            line_errors.append(f"SIREN_INVALID({err_s})")
+    elif siret_val:
+        siren_from_siret = re.sub(r"\D", "", siret_val)[:9]
+        ok_s, _, err_s = siren_check(siren_from_siret)
+        if not ok_s:
+            err_siren = True
+            line_errors.append(f"SIREN_DERIVE_INVALID({err_s})")
+    else:
+        err_siren = True
+        line_errors.append("SIREN_MANQUANT")
+
+    if siret_val:
+        ok_st, _, err_st = siret_check(siret_val)
+        if not ok_st:
+            err_siret = True
+            line_errors.append(f"SIRET_INVALID({err_st})")
+
+    if tva_val:
+        ok_tva, _, err_tva = tva_fr_check(tva_val)
+        if not ok_tva:
+            err_tva = True
+            line_errors.append(f"TVA_INVALID({err_tva})")
+
+    dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
+    if len(dedup_key) > 5:
+        if dedup_key in seen_dedup:
+            line_errors.append(f"DOUBLON_AVEC_LIGNE_{seen_dedup[dedup_key]}")
+        else:
+            seen_dedup[dedup_key] = line_no
+
+    return line_errors, err_siren, err_siret, err_tva
+
+
 def audit_french_csv(csv_path: Path) -> dict:
     """Audit complet d'un fichier CSV de tiers pour le marché français."""
     if not csv_path.exists():
@@ -88,7 +138,7 @@ def audit_french_csv(csv_path: Path) -> dict:
 
     seen_dedup: dict[str, int] = {}
 
-    with open(csv_path, mode="r", encoding="utf-8-sig") as f:
+    with open(csv_path, encoding="utf-8-sig") as f:
         valid_lines = [line for line in f if not line.strip().startswith("#")]
         if not valid_lines:
             return results
@@ -97,68 +147,43 @@ def audit_french_csv(csv_path: Path) -> dict:
         reader = csv.DictReader(valid_lines, delimiter=delimiter)
         fields = reader.fieldnames or []
 
-        col_nom = next((c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None)
-        col_siren = next((c for c in fields if re.search(r"siren", c, re.I)), None)
-        col_siret = next((c for c in fields if re.search(r"siret", c, re.I)), None)
-        col_tva = next((c for c in fields if re.search(r"tva|vat", c, re.I)), None)
-        col_cp = next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None)
+        cols = {
+            "nom": next(
+                (c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None
+            ),
+            "siren": next((c for c in fields if re.search(r"siren", c, re.I)), None),
+            "siret": next((c for c in fields if re.search(r"siret", c, re.I)), None),
+            "tva": next((c for c in fields if re.search(r"tva|vat", c, re.I)), None),
+            "cp": next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None),
+        }
 
         for line_no, row in enumerate(reader, start=2):
             results["total"] += 1
-            line_errors = []
-
-            nom_val = row.get(col_nom, "") if col_nom else ""
-            siren_val = row.get(col_siren, "") if col_siren else ""
-            siret_val = row.get(col_siret, "") if col_siret else ""
-            tva_val = row.get(col_tva, "") if col_tva else ""
-            cp_val = row.get(col_cp, "") if col_cp else ""
-
-            # SIREN
-            if siren_val:
-                ok_s, _, err_s = siren_check(siren_val)
-                if not ok_s:
-                    results["erreurs_siren"] += 1
-                    line_errors.append(f"SIREN_INVALID({err_s})")
-            elif siret_val:
-                siren_from_siret = re.sub(r"\D", "", siret_val)[:9]
-                ok_s, _, err_s = siren_check(siren_from_siret)
-                if not ok_s:
-                    results["erreurs_siren"] += 1
-                    line_errors.append(f"SIREN_DERIVE_INVALID({err_s})")
-            else:
+            line_errors, err_siren, err_siret, err_tva = _validate_french_row(
+                row, cols, line_no, seen_dedup
+            )
+            if err_siren:
                 results["erreurs_siren"] += 1
-                line_errors.append("SIREN_MANQUANT")
+            if err_siret:
+                results["erreurs_siret"] += 1
+            if err_tva:
+                results["erreurs_tva"] += 1
+            if any("DOUBLON" in err for err in line_errors):
+                results["doublons"] += 1
 
-            # SIRET
-            if siret_val:
-                ok_st, _, err_st = siret_check(siret_val)
-                if not ok_st:
-                    results["erreurs_siret"] += 1
-                    line_errors.append(f"SIRET_INVALID({err_st})")
-
-            # TVA
-            if tva_val:
-                ok_tva, _, err_tva = tva_fr_check(tva_val)
-                if not ok_tva:
-                    results["erreurs_tva"] += 1
-                    line_errors.append(f"TVA_INVALID({err_tva})")
-
-            # Doublons
-            dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
-            if dedup_key and len(dedup_key) > 5:
-                if dedup_key in seen_dedup:
-                    results["doublons"] += 1
-                    line_errors.append(f"DOUBLON_AVEC_LIGNE_{seen_dedup[dedup_key]}")
-                else:
-                    seen_dedup[dedup_key] = line_no
+            nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+            siren_val = row.get(cols["siren"], "") if cols["siren"] else ""
+            siret_val = row.get(cols["siret"], "") if cols["siret"] else ""
 
             if line_errors:
-                results["anomalies"].append({
-                    "ligne": line_no,
-                    "nom": nom_val,
-                    "siren": siren_val or siret_val[:9] if siret_val else "",
-                    "erreurs": line_errors,
-                })
+                results["anomalies"].append(
+                    {
+                        "ligne": line_no,
+                        "nom": nom_val,
+                        "siren": siren_val or siret_val[:9] if siret_val else "",
+                        "erreurs": line_errors,
+                    }
+                )
             else:
                 results["valides"] += 1
 
@@ -176,11 +201,11 @@ def format_french_report(results: dict, filename: str) -> str:
 
     lines = [
         f"# Rapport d'Audit Référentiels RFE France — {filename}",
-        f"**Date :** 2026-09-24 · **Cadre Réglementaire :** Réforme Facturation Électronique (DGFiP / Factur-X)",
+        "**Date :** 2026-09-24 · **Cadre Réglementaire :** Réforme Facturation Électronique (DGFiP / Factur-X)",
         "",
         "## 1. Synthèse de Conformité",
-        f"| Indicateur | Résultat | Statut |",
-        f"|---|---|---|",
+        "| Indicateur | Résultat | Statut |",
+        "|---|---|---|",
         f"| Fiches traitées | **{total}** | Base totale |",
         f"| Fiches prêtes à l'émission | **{valides}** ({pct:.1f}%) | "
         f"{'🟢 Excellent' if pct > 90 else '🔴 Blocages majeurs détectés'} |",
@@ -204,6 +229,8 @@ def format_french_report(results: dict, filename: str) -> str:
         lines.append("| Ligne | Nom | SIREN | Erreurs Détectées |")
         lines.append("|---|---|---|---|")
         for item in results["anomalies"][:15]:
-            lines.append(f"| {item['ligne']} | {item['nom']} | {item['siren']} | {', '.join(item['erreurs'])} |")
+            lines.append(
+                f"| {item['ligne']} | {item['nom']} | {item['siren']} | {', '.join(item['erreurs'])} |"
+            )
 
     return "\n".join(lines)

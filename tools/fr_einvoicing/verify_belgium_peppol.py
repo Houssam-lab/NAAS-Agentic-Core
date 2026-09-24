@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 verify_belgium_peppol.py — Outil de diagnostic et de mise en conformité des référentiels
 clients/fournisseurs pour la facturation électronique Peppol en Belgique (B2B).
@@ -93,6 +92,43 @@ def validate_belgian_vat(vat_str: str) -> tuple[bool, str, str]:
     return True, f"BE{num.replace('.', '')}", "OK"
 
 
+def _validate_peppol_row(
+    row: dict, cols: dict, line_no: int, seen_keys: dict
+) -> tuple[list[str], bool, bool]:
+    anomalies = []
+    nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+    bce_val = row.get(cols["bce"], "") if cols["bce"] else ""
+    tva_val = row.get(cols["tva"], "") if cols["tva"] else ""
+    cp_val = row.get(cols["cp"], "") if cols["cp"] else ""
+
+    err_bce = False
+    err_tva = False
+
+    if bce_val:
+        ok_bce, _clean_bce, msg_bce = validate_bce_modulo97(bce_val)
+        if not ok_bce:
+            err_bce = True
+            anomalies.append(f"BCE_INVALID({msg_bce})")
+    else:
+        err_bce = True
+        anomalies.append("BCE_MANQUANT")
+
+    if tva_val:
+        ok_tva, _clean_tva, msg_tva = validate_belgian_vat(tva_val)
+        if not ok_tva:
+            err_tva = True
+            anomalies.append(f"TVA_INVALID({msg_tva})")
+
+    dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
+    if len(dedup_key) > 5:
+        if dedup_key in seen_keys:
+            anomalies.append(f"DOUBLON_AVEC_LIGNE_{seen_keys[dedup_key]}")
+        else:
+            seen_keys[dedup_key] = line_no
+
+    return anomalies, err_bce, err_tva
+
+
 def audit_peppol_csv(csv_path: Path) -> dict:
     """Analyse un fichier CSV de référentiels clients/fournisseurs belges."""
     if not csv_path.exists():
@@ -110,7 +146,7 @@ def audit_peppol_csv(csv_path: Path) -> dict:
 
     seen_keys: dict[str, int] = {}
 
-    with open(csv_path, mode="r", encoding="utf-8-sig") as f:
+    with open(csv_path, encoding="utf-8-sig") as f:
         valid_lines = [line for line in f if not line.strip().startswith("#")]
         if not valid_lines:
             return results
@@ -119,54 +155,39 @@ def audit_peppol_csv(csv_path: Path) -> dict:
         reader = csv.DictReader(valid_lines, delimiter=delimiter)
         fields = reader.fieldnames or []
 
-        # Détection heuristique des colonnes
-        col_nom = next((c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None)
-        col_bce = next((c for c in fields if re.search(r"bce|kbo|entreprise|siren", c, re.I)), None)
-        col_tva = next((c for c in fields if re.search(r"tva|vat", c, re.I)), None)
-        col_cp = next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None)
+        cols = {
+            "nom": next(
+                (c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None
+            ),
+            "bce": next(
+                (c for c in fields if re.search(r"bce|kbo|entreprise|siren", c, re.I)), None
+            ),
+            "tva": next((c for c in fields if re.search(r"tva|vat", c, re.I)), None),
+            "cp": next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None),
+        }
 
         for line_no, row in enumerate(reader, start=2):
             results["total_lignes"] += 1
-            anomalies = []
-
-            nom_val = row.get(col_nom, "") if col_nom else ""
-            bce_val = row.get(col_bce, "") if col_bce else ""
-            tva_val = row.get(col_tva, "") if col_tva else ""
-            cp_val = row.get(col_cp, "") if col_cp else ""
-
-            # 1. Vérification BCE
-            if bce_val:
-                ok_bce, clean_bce, msg_bce = validate_bce_modulo97(bce_val)
-                if not ok_bce:
-                    results["erreurs_bce"] += 1
-                    anomalies.append(f"BCE_INVALID({msg_bce})")
-            else:
+            anomalies, err_bce, err_tva = _validate_peppol_row(row, cols, line_no, seen_keys)
+            if err_bce:
                 results["erreurs_bce"] += 1
-                anomalies.append("BCE_MANQUANT")
+            if err_tva:
+                results["erreurs_tva"] += 1
+            if any("DOUBLON" in a for a in anomalies):
+                results["doublons"] += 1
 
-            # 2. Vérification TVA
-            if tva_val:
-                ok_tva, clean_tva, msg_tva = validate_belgian_vat(tva_val)
-                if not ok_tva:
-                    results["erreurs_tva"] += 1
-                    anomalies.append(f"TVA_INVALID({msg_tva})")
-
-            # 3. Détection de doublons (Dénomination normalisée + Code postal)
-            dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
-            if dedup_key and len(dedup_key) > 5:
-                if dedup_key in seen_keys:
-                    results["doublons"] += 1
-                    anomalies.append(f"DOUBLON_AVEC_LIGNE_{seen_keys[dedup_key]}")
-                else:
-                    seen_keys[dedup_key] = line_no
+            nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+            bce_val = row.get(cols["bce"], "") if cols["bce"] else ""
 
             if anomalies:
-                results["details_anomalies"].append({
-                    "ligne": line_no,
-                    "nom": nom_val,
-                    "bce": bce_val,
-                    "anomalies": anomalies,
-                })
+                results["details_anomalies"].append(
+                    {
+                        "ligne": line_no,
+                        "nom": nom_val,
+                        "bce": bce_val,
+                        "anomalies": anomalies,
+                    }
+                )
             else:
                 results["valides"] += 1
 
@@ -188,12 +209,12 @@ def generate_markdown_report(results: dict, source_filename: str) -> str:
 
     lines = [
         f"# Rapport de Diagnostic de Conformité Peppol Belgique — {source_filename}",
-        f"**Date d'audit :** 2026-09-24 · **Standard :** Peppol BIS Billing 3.0 / KBO-BCE Modulo 97",
+        "**Date d'audit :** 2026-09-24 · **Standard :** Peppol BIS Billing 3.0 / KBO-BCE Modulo 97",
         "",
         "## 1. Synthèse Exécutive",
         "",
-        f"| Métrique | Valeur | Statut Réglementaire |",
-        f"|---|---|---|",
+        "| Métrique | Valeur | Statut Réglementaire |",
+        "|---|---|---|",
         f"| Total fiches auditées | **{total}** | Base déclarée |",
         f"| Fiches 100% conformes Peppol | **{valides}** ({tx_conformite:.1f}%) | "
         f"{'🟢 Prêt au routage' if tx_conformite > 90 else '🔴 Risque de rejet massif'} |",
@@ -218,9 +239,13 @@ def generate_markdown_report(results: dict, source_filename: str) -> str:
         lines.append("| Ligne | Tiers | Valeur BCE | Anomalies Détectées |")
         lines.append("|---|---|---|---|")
         for item in results["details_anomalies"][:15]:
-            lines.append(f"| {item['ligne']} | {item['nom']} | {item['bce']} | {', '.join(item['anomalies'])} |")
+            lines.append(
+                f"| {item['ligne']} | {item['nom']} | {item['bce']} | {', '.join(item['anomalies'])} |"
+            )
         if len(results["details_anomalies"]) > 15:
-            lines.append(f"| ... | *et {len(results['details_anomalies']) - 15} autres fiches* | ... | ... |")
+            lines.append(
+                f"| ... | *et {len(results['details_anomalies']) - 15} autres fiches* | ... | ... |"
+            )
 
     return "\n".join(lines)
 

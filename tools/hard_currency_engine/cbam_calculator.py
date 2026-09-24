@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module CBAM Calculator — Hard Currency Engine
 Calculateur d'arbitrage carbone et générateur de déclarations XML pour le Mécanisme d'Ajustement Carbone aux Frontières (UE).
@@ -68,7 +67,12 @@ CERT_PRICE_DEFAULT = 75.0
 PENALTY_RATE = 100.0
 
 
-def calculate_cbam(hs_code: str, tonnes: float, see_override: float | None = None, cert_price: float = CERT_PRICE_DEFAULT) -> dict:
+def calculate_cbam(
+    hs_code: str,
+    tonnes: float,
+    see_override: float | None = None,
+    cert_price: float = CERT_PRICE_DEFAULT,
+) -> dict:
     if hs_code not in CBAM_CATALOG:
         raise ValueError(f"Code SH {hs_code} non répertorié.")
 
@@ -109,11 +113,14 @@ def calculate_cbam(hs_code: str, tonnes: float, see_override: float | None = Non
 
 def generate_cbam_xml(res: dict, declarant_eori: str = "FR12345678900012") -> str:
     """Génère un extrait XML conforme au portail déclaratif CBAM de la Commission Européenne."""
-    root = ET.Element("CBAMDeclaration", attrib={
-        "xmlns": "urn:eu:cbam:v1:declaration",
-        "regulation": "EU-2023-956",
-        "year": "2026",
-    })
+    root = ET.Element(
+        "CBAMDeclaration",
+        attrib={
+            "xmlns": "urn:eu:cbam:v1:declaration",
+            "regulation": "EU-2023-956",
+            "year": "2026",
+        },
+    )
 
     declarant = ET.SubElement(root, "AuthorisedDeclarant")
     ET.SubElement(declarant, "EORINumber").text = declarant_eori
@@ -136,7 +143,9 @@ def generate_cbam_xml(res: dict, declarant_eori: str = "FR12345678900012") -> st
     ET.SubElement(emissions, "DefaultValueAvoided").text = f"{res['see_default']:.4f}"
 
     financial = ET.SubElement(goods_item, "FinancialImpact")
-    ET.SubElement(financial, "TotalCertificatesRequired").text = f"{(res['cout_actual'] / res['prix_certificat']):.2f}"
+    ET.SubElement(
+        financial, "TotalCertificatesRequired"
+    ).text = f"{(res['cout_actual'] / res['prix_certificat']):.2f}"
     ET.SubElement(financial, "CarbonCostSavingsEUR").text = f"{res['economie_totale']:.2f}"
 
     rough_string = ET.tostring(root, "utf-8")

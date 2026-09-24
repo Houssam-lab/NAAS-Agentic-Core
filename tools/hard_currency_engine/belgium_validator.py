@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module Belgium Validator — Hard Currency Engine
 Audit et mise en conformité des référentiels clients/fournisseurs pour Peppol Belgique (B2B).
@@ -62,6 +61,43 @@ def validate_belgian_vat(vat_str: str) -> tuple[bool, str, str]:
     return True, f"BE{num.replace('.', '')}", "OK"
 
 
+def _validate_belgian_row(
+    row: dict, cols: dict, line_no: int, seen_dedup: dict
+) -> tuple[list[str], bool, bool]:
+    line_errors = []
+    nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+    bce_val = row.get(cols["bce"], "") if cols["bce"] else ""
+    tva_val = row.get(cols["tva"], "") if cols["tva"] else ""
+    cp_val = row.get(cols["cp"], "") if cols["cp"] else ""
+
+    err_bce = False
+    err_tva = False
+
+    if bce_val:
+        ok_bce, _clean_bce, msg_bce = validate_bce_modulo97(bce_val)
+        if not ok_bce:
+            err_bce = True
+            line_errors.append(f"BCE_INVALID({msg_bce})")
+    else:
+        err_bce = True
+        line_errors.append("BCE_MANQUANT")
+
+    if tva_val:
+        ok_tva, _clean_tva, msg_tva = validate_belgian_vat(tva_val)
+        if not ok_tva:
+            err_tva = True
+            line_errors.append(f"TVA_INVALID({msg_tva})")
+
+    dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
+    if len(dedup_key) > 5:
+        if dedup_key in seen_dedup:
+            line_errors.append(f"DOUBLON_AVEC_LIGNE_{seen_dedup[dedup_key]}")
+        else:
+            seen_dedup[dedup_key] = line_no
+
+    return line_errors, err_bce, err_tva
+
+
 def audit_belgian_csv(csv_path: Path) -> dict:
     if not csv_path.exists():
         raise FileNotFoundError(f"Fichier introuvable : {csv_path}")
@@ -78,7 +114,7 @@ def audit_belgian_csv(csv_path: Path) -> dict:
 
     seen_dedup: dict[str, int] = {}
 
-    with open(csv_path, mode="r", encoding="utf-8-sig") as f:
+    with open(csv_path, encoding="utf-8-sig") as f:
         valid_lines = [line for line in f if not line.strip().startswith("#")]
         if not valid_lines:
             return results
@@ -87,56 +123,47 @@ def audit_belgian_csv(csv_path: Path) -> dict:
         reader = csv.DictReader(valid_lines, delimiter=delimiter)
         fields = reader.fieldnames or []
 
-        col_nom = next((c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None)
-        col_bce = next((c for c in fields if re.search(r"bce|kbo|entreprise|siren", c, re.I)), None)
-        col_tva = next((c for c in fields if re.search(r"tva|vat", c, re.I)), None)
-        col_cp = next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None)
+        cols = {
+            "nom": next(
+                (c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None
+            ),
+            "bce": next(
+                (c for c in fields if re.search(r"bce|kbo|entreprise|siren", c, re.I)), None
+            ),
+            "tva": next((c for c in fields if re.search(r"tva|vat", c, re.I)), None),
+            "cp": next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None),
+        }
 
         for line_no, row in enumerate(reader, start=2):
             results["total"] += 1
-            line_errors = []
-
-            nom_val = row.get(col_nom, "") if col_nom else ""
-            bce_val = row.get(col_bce, "") if col_bce else ""
-            tva_val = row.get(col_tva, "") if col_tva else ""
-            cp_val = row.get(col_cp, "") if col_cp else ""
-
-            if bce_val:
-                ok_bce, clean_bce, msg_bce = validate_bce_modulo97(bce_val)
-                if not ok_bce:
-                    results["erreurs_bce"] += 1
-                    line_errors.append(f"BCE_INVALID({msg_bce})")
-            else:
+            line_errors, err_bce, err_tva = _validate_belgian_row(row, cols, line_no, seen_dedup)
+            if err_bce:
                 results["erreurs_bce"] += 1
-                line_errors.append("BCE_MANQUANT")
+            if err_tva:
+                results["erreurs_tva"] += 1
+            if any("DOUBLON" in err for err in line_errors):
+                results["doublons"] += 1
 
-            if tva_val:
-                ok_tva, clean_tva, msg_tva = validate_belgian_vat(tva_val)
-                if not ok_tva:
-                    results["erreurs_tva"] += 1
-                    line_errors.append(f"TVA_INVALID({msg_tva})")
-
-            dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
-            if dedup_key and len(dedup_key) > 5:
-                if dedup_key in seen_dedup:
-                    results["doublons"] += 1
-                    line_errors.append(f"DOUBLON_AVEC_LIGNE_{seen_dedup[dedup_key]}")
-                else:
-                    seen_dedup[dedup_key] = line_no
+            nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+            bce_val = row.get(cols["bce"], "") if cols["bce"] else ""
 
             if line_errors:
-                results["anomalies"].append({
-                    "ligne": line_no,
-                    "nom": nom_val,
-                    "bce": bce_val,
-                    "erreurs": line_errors,
-                })
+                results["anomalies"].append(
+                    {
+                        "ligne": line_no,
+                        "nom": nom_val,
+                        "bce": bce_val,
+                        "erreurs": line_errors,
+                    }
+                )
             else:
                 results["valides"] += 1
 
             row_ann = dict(row)
             row_ann["ANOMALIES_PEPPOL"] = "; ".join(line_errors) if line_errors else "CONFORME"
-            row_ann["PEPPOL_ID"] = format_peppol_id(bce_val) if bce_val and not line_errors else "A_CORRIGER"
+            row_ann["PEPPOL_ID"] = (
+                format_peppol_id(bce_val) if bce_val and not line_errors else "A_CORRIGER"
+            )
             results["annotees"].append(row_ann)
 
     return results
@@ -149,11 +176,11 @@ def format_belgian_report(results: dict, filename: str) -> str:
 
     lines = [
         f"# Rapport de Diagnostic Peppol Belgique — {filename}",
-        f"**Date :** 2026-09-24 · **Cadre :** Arrêté Royal Facturation Électronique B2B Obligatoire",
+        "**Date :** 2026-09-24 · **Cadre :** Arrêté Royal Facturation Électronique B2B Obligatoire",
         "",
         "## 1. Synthèse de Conformité Peppol",
-        f"| Indicateur | Valeur | Statut |",
-        f"|---|---|---|",
+        "| Indicateur | Valeur | Statut |",
+        "|---|---|---|",
         f"| Total fiches auditées | **{total}** | Base totale |",
         f"| Fiches 100% compatibles Peppol | **{valides}** ({pct:.1f}%) | "
         f"{'🟢 Prêt' if pct > 90 else '🔴 Risque de rejet de facturation'} |",

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module EAA Scanner — Hard Currency Engine
 Audit d'accessibilité web (WCAG 2.1 niveau AA / EN 301 549) et générateur de Déclaration d'accessibilité légale (EAA).
@@ -8,98 +7,143 @@ Audit d'accessibilité web (WCAG 2.1 niveau AA / EN 301 549) et générateur de 
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 
-def audit_html_content(html_str: str) -> dict:
-    """Analyse un contenu HTML pour détecter les non-conformités critiques EAA / WCAG 2.1 AA."""
-    findings = []
-
-    # 1. Balise <html> et attribut lang
+def _check_html_tag_and_title(html_str: str, findings: list):
     html_tag = re.search(r"<html([^>]*)>", html_str, re.IGNORECASE)
     if not html_tag:
         findings.append(("CRITIQUE", "Structure", "Balise <html> absente"))
-    else:
-        attrs = html_tag.group(1)
-        if not re.search(r'\blang\s*=\s*["\'][a-zA-Z]{2}', attrs):
-            findings.append(("CRITIQUE", "WCAG 3.1.1", "Attribut 'lang' absent ou non valide sur <html>"))
+    elif not re.search(r'\blang\s*=\s*["\'][a-zA-Z]{2}', html_tag.group(1)):
+        findings.append(
+            ("CRITIQUE", "WCAG 3.1.1", "Attribut 'lang' absent ou non valide sur <html>")
+        )
 
-    # 2. Balise <title>
     title_match = re.search(r"<title>(.*?)</title>", html_str, re.IGNORECASE | re.DOTALL)
     if not title_match or not title_match.group(1).strip():
         findings.append(("MAJEUR", "WCAG 2.4.2", "Balise <title> manquante ou vide"))
 
-    # 3. Images sans attribut alt
+
+def _check_images(html_str: str, findings: list) -> int:
     img_tags = re.findall(r"<img([^>]*)>", html_str, re.IGNORECASE)
-    total_imgs = len(img_tags)
     missing_alt = 0
     generic_alt = 0
     for img in img_tags:
         alt_match = re.search(r'\balt\s*=\s*["\'](.*?)["\']', img, re.IGNORECASE)
         if not alt_match:
             missing_alt += 1
-        else:
-            val = alt_match.group(1).strip().lower()
-            if val in ("image", "photo", "img", "icon", "visuel", "logo"):
-                generic_alt += 1
+        elif alt_match.group(1).strip().lower() in (
+            "image",
+            "photo",
+            "img",
+            "icon",
+            "visuel",
+            "logo",
+        ):
+            generic_alt += 1
 
     if missing_alt > 0:
         findings.append(("CRITIQUE", "WCAG 1.1.1", f"{missing_alt} image(s) sans attribut 'alt'"))
     if generic_alt > 0:
-        findings.append(("MOYEN", "WCAG 1.1.1", f"{generic_alt} image(s) avec description générique non descriptive"))
+        findings.append(
+            (
+                "MOYEN",
+                "WCAG 1.1.1",
+                f"{generic_alt} image(s) avec description générique non descriptive",
+            )
+        )
+    return len(img_tags)
 
-    # 4. Formulaires et champs d'entrée sans libellé associé
+
+def _check_inputs(html_str: str, findings: list) -> int:
     inputs = re.findall(r"<input([^>]*)>", html_str, re.IGNORECASE)
     missing_labels = 0
     for inp in inputs:
-        # Ignore les types hidden, submit, button
         type_match = re.search(r'\btype\s*=\s*["\'](.*?)["\']', inp, re.IGNORECASE)
         inp_type = type_match.group(1).lower() if type_match else "text"
         if inp_type in ("hidden", "submit", "button", "reset"):
             continue
 
-        has_aria = bool(re.search(r'\b(aria-label|aria-labelledby)\s*=', inp, re.IGNORECASE))
-        has_id = bool(re.search(r'\bid\s*=', inp, re.IGNORECASE))
+        has_aria = bool(re.search(r"\b(aria-label|aria-labelledby)\s*=", inp, re.IGNORECASE))
+        has_id = bool(re.search(r"\bid\s*=", inp, re.IGNORECASE))
 
-        # Vérifie si un <label for="..."> existe dans le html pour cet id
         if not has_aria:
             if has_id:
                 id_val = re.search(r'\bid\s*=\s*["\'](.*?)["\']', inp, re.IGNORECASE).group(1)
-                label_for = re.search(rf'<label[^>]*\bfor\s*=\s*["\']{re.escape(id_val)}["\']', html_str, re.IGNORECASE)
+                label_for = re.search(
+                    rf'<label[^>]*\bfor\s*=\s*["\']{re.escape(id_val)}["\']',
+                    html_str,
+                    re.IGNORECASE,
+                )
                 if not label_for:
                     missing_labels += 1
             else:
                 missing_labels += 1
 
     if missing_labels > 0:
-        findings.append(("CRITIQUE", "WCAG 1.3.1 / 3.3.2", f"{missing_labels} champ(s) de formulaire sans étiquette (<label>)"))
+        findings.append(
+            (
+                "CRITIQUE",
+                "WCAG 1.3.1 / 3.3.2",
+                f"{missing_labels} champ(s) de formulaire sans étiquette (<label>)",
+            )
+        )
+    return len(inputs)
 
-    # 5. Liens vides ou avec texte non explicite
+
+def _check_links(html_str: str, findings: list) -> int:
     links = re.findall(r"<a([^>]*)>(.*?)</a>", html_str, re.IGNORECASE | re.DOTALL)
     bad_links = 0
+    generic_words = {
+        "cliquez ici",
+        "en savoir plus",
+        "lire la suite",
+        "ici",
+        "click here",
+        "read more",
+    }
     for lattr, ltext in links:
         raw_text = re.sub(r"<[^>]+>", "", ltext).strip().lower()
-        has_aria = bool(re.search(r'\baria-label\s*=', lattr, re.IGNORECASE))
-        if not raw_text and not has_aria:
-            bad_links += 1
-        elif raw_text in ("cliquez ici", "en savoir plus", "lire la suite", "ici", "click here", "read more") and not has_aria:
+        has_aria = bool(re.search(r"\baria-label\s*=", lattr, re.IGNORECASE))
+        if not has_aria and (not raw_text or raw_text in generic_words):
             bad_links += 1
 
     if bad_links > 0:
-        findings.append(("MAJEUR", "WCAG 2.4.4", f"{bad_links} lien(s) vide(s) ou au libellé non explicite sans aria-label"))
+        findings.append(
+            (
+                "MAJEUR",
+                "WCAG 2.4.4",
+                f"{bad_links} lien(s) vide(s) ou au libellé non explicite sans aria-label",
+            )
+        )
+    return len(links)
+
+
+def audit_html_content(html_str: str) -> dict:
+    """Analyse un contenu HTML pour détecter les non-conformités critiques EAA / WCAG 2.1 AA."""
+    findings: list[tuple[str, str, str]] = []
+    _check_html_tag_and_title(html_str, findings)
+    total_imgs = _check_images(html_str, findings)
+    total_inputs = _check_inputs(html_str, findings)
+    total_liens = _check_links(html_str, findings)
 
     return {
         "total_images": total_imgs,
-        "total_inputs": len(inputs),
-        "total_liens": len(links),
+        "total_inputs": total_inputs,
+        "total_liens": total_liens,
         "anomalies": findings,
         "est_conforme": len(findings) == 0,
     }
 
 
-def generate_declaration_accessibilite(nom_entreprise: str, nom_site: str, url_site: str, taux_conformite: float = 65.0) -> str:
+def generate_declaration_accessibilite(
+    nom_entreprise: str, nom_site: str, url_site: str, taux_conformite: float = 65.0
+) -> str:
     """Génère le texte légal français obligatoire pour la Déclaration d'accessibilité (évite l'amende de 25 000 €)."""
-    statut = "totalement conforme" if taux_conformite == 100.0 else ("partiellement conforme" if taux_conformite >= 50.0 else "non conforme")
+    statut = (
+        "totalement conforme"
+        if taux_conformite == 100.0
+        else ("partiellement conforme" if taux_conformite >= 50.0 else "non conforme")
+    )
 
     return f"""# Déclaration d’accessibilité — {nom_site}
 
@@ -123,8 +167,8 @@ Les contenus listés ci-dessous ne sont pas accessibles pour les raisons suivant
 
 ## Voie de recours et signalement
 Si vous constatez un défaut d’accessibilité vous empêchant d’accéder à un contenu ou une fonctionnalité du site, vous êtes invité à nous le signaler :
-- Formulaire de contact accessibilité : contact@{nom_site.lower().replace(' ', '')}.com
-- Référent accessibilité : conformite-accessibilite@{nom_site.lower().replace(' ', '')}.com
+- Formulaire de contact accessibilité : contact@{nom_site.lower().replace(" ", "")}.com
+- Référent accessibilité : conformite-accessibilite@{nom_site.lower().replace(" ", "")}.com
 
 *Fait à Paris, le 24 septembre 2026.*
 """

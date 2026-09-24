@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Tests unitaires pour la suite Hard Currency Engine (HCE).
 Couvre la validation France, Belgique Peppol, CBAM, ZATCA, EAA et CRM.
@@ -13,36 +12,34 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.hard_currency_engine.france_validator import (
-    siren_check,
-    siret_check,
-    tva_fr_check,
-    luhn_ok,
-)
 from tools.hard_currency_engine.belgium_validator import (
+    format_peppol_id,
     validate_bce_modulo97,
     validate_belgian_vat,
-    format_peppol_id,
 )
 from tools.hard_currency_engine.cbam_calculator import (
     calculate_cbam,
     generate_cbam_xml,
-    CBAM_CATALOG,
 )
-from tools.hard_currency_engine.zatca_validator import (
-    validate_uuid_v4,
-    is_valid_base64_sha256,
-    encode_zatca_tlv,
-    decode_zatca_tlv,
-    audit_zatca_batch,
-    GENESIS_PIH,
+from tools.hard_currency_engine.crm_dispatcher import (
+    generate_personalized_dispatch,
 )
 from tools.hard_currency_engine.eaa_scanner import (
     audit_html_content,
     generate_declaration_accessibilite,
 )
-from tools.hard_currency_engine.crm_dispatcher import (
-    generate_personalized_dispatch,
+from tools.hard_currency_engine.france_validator import (
+    luhn_ok,
+    siren_check,
+    siret_check,
+    tva_fr_check,
+)
+from tools.hard_currency_engine.zatca_validator import (
+    GENESIS_PIH,
+    audit_zatca_batch,
+    decode_zatca_tlv,
+    encode_zatca_tlv,
+    validate_uuid_v4,
 )
 
 
@@ -56,7 +53,7 @@ class TestFranceValidator(unittest.TestCase):
         self.assertFalse(luhn_ok("501058813"))
 
     def test_siren_and_siret(self):
-        ok, clean, msg = siren_check("501 058 812")
+        ok, clean, _msg = siren_check("501 058 812")
         self.assertTrue(ok)
         self.assertEqual(clean, "501058812")
 
@@ -84,7 +81,7 @@ class TestFranceValidator(unittest.TestCase):
 class TestBelgiumValidator(unittest.TestCase):
     def test_bce_modulo97(self):
         # 0123.456.749 -> 1234567 % 97 = 48 -> 97 - 48 = 49 -> Valid!
-        ok, formatted, msg = validate_bce_modulo97("0123.456.749")
+        ok, formatted, _msg = validate_bce_modulo97("0123.456.749")
         self.assertTrue(ok)
         self.assertEqual(formatted, "0123.456.749")
 
@@ -174,7 +171,9 @@ class TestEAAScanner(unittest.TestCase):
         self.assertTrue(any("lang" in item[2] for item in res["anomalies"]))
         self.assertTrue(any("alt" in item[2] for item in res["anomalies"]))
 
-        decl = generate_declaration_accessibilite("SuperRetail", "SuperRetail.fr", "https://superretail.fr")
+        decl = generate_declaration_accessibilite(
+            "SuperRetail", "SuperRetail.fr", "https://superretail.fr"
+        )
         self.assertIn("Déclaration d’accessibilité", decl)
         self.assertIn("SuperRetail", decl)
 

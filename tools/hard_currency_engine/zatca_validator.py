@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module ZATCA Validator — Hard Currency Engine
 Vérification تشفيرية وفحص سلاسل الفواتير الإلكترونية لهيئة الزكاة والضريبة والجمارك (المملكة العربية السعودية - المرحلة 2 الموجة 24).
@@ -8,10 +7,11 @@ Vérification تشفيرية وفحص سلاسل الفواتير الإلكتر
 from __future__ import annotations
 
 import base64
-import re
 import uuid
 
-GENESIS_PIH = "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI4NjExN2Q2NDhkNzg1ZTZmMw=="
+GENESIS_PIH = (
+    "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI4NjExN2Q2NDhkNzg1ZTZmMw=="
+)
 
 
 def validate_uuid_v4(val: str) -> bool:
@@ -72,7 +72,7 @@ def decode_zatca_tlv(b64_qr: str) -> dict[int, str]:
     try:
         raw = base64.b64decode(b64_qr.strip(), validate=True)
     except Exception as e:
-        raise ValueError(f"Base64 invalide : {e}")
+        raise ValueError(f"Base64 invalide : {e}") from e
 
     idx = 0
     parsed = {}
@@ -98,7 +98,7 @@ def audit_zatca_batch(invoices: list[dict]) -> dict:
     expected_pih = GENESIS_PIH
 
     for i, inv in enumerate(invoices):
-        inv_id = inv.get("id", f"INV-{i+1}")
+        inv_id = inv.get("id", f"INV-{i + 1}")
         icv = inv.get("icv")
         u = inv.get("uuid", "")
         pih = inv.get("pih", "")
@@ -110,7 +110,9 @@ def audit_zatca_batch(invoices: list[dict]) -> dict:
 
         # 2. Check ICV monotonicity
         if icv != expected_icv:
-            anomalies.append(f"Facture {inv_id}: Rupture de séquence ICV ({icv} attendu {expected_icv})")
+            anomalies.append(
+                f"Facture {inv_id}: Rupture de séquence ICV ({icv} attendu {expected_icv})"
+            )
 
         # 3. Check PIH continuity
         if pih != expected_pih:

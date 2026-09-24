@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Module CRM Dispatcher — Hard Currency Engine
 Moteur de génération et personnalisation des campagnes d'outreach direct à partir de la base de prospects qualifiés.
@@ -16,7 +15,7 @@ def load_targets(csv_path: Path) -> list[dict]:
     if not csv_path.exists():
         raise FileNotFoundError(f"Fichier de cibles introuvable : {csv_path}")
 
-    with open(csv_path, mode="r", encoding="utf-8-sig") as f:
+    with open(csv_path, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         return list(reader)
 
@@ -187,12 +186,12 @@ def dispatch_campaign(csv_path: Path, output_dir: Path) -> list[Path]:
         filename = f"{int(tid):02d}_{packet['corridor']}_{safe_name}.txt"
         file_path = output_dir / filename
 
-        content = f"""TO: {packet['email']}
-SUBJECT: {packet['objet']}
-DESTINATAIRE: {packet['destinataire']} ({packet['role']})
-CORRIDOR: {packet['corridor']}
+        content = f"""TO: {packet["email"]}
+SUBJECT: {packet["objet"]}
+DESTINATAIRE: {packet["destinataire"]} ({packet["role"]})
+CORRIDOR: {packet["corridor"]}
 ================================================================================
-{packet['corps']}
+{packet["corps"]}
 """
         file_path.write_text(content, encoding="utf-8")
         generated_files.append(file_path)

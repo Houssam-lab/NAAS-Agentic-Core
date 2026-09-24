@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Hard Currency Engine (HCE) — Master Command Line Interface
 Exécution unifiée des modules d'audit, de calcul carbone, de conformité et de prospection commerciale.
@@ -16,18 +15,22 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.hard_currency_engine.france_validator import audit_french_csv, format_french_report
 from tools.hard_currency_engine.belgium_validator import audit_belgian_csv, format_belgian_report
-from tools.hard_currency_engine.cbam_calculator import calculate_cbam, generate_cbam_xml, CBAM_CATALOG
-from tools.hard_currency_engine.zatca_validator import (
-    validate_uuid_v4,
-    audit_zatca_batch,
-    encode_zatca_tlv,
-    decode_zatca_tlv,
-    GENESIS_PIH,
+from tools.hard_currency_engine.cbam_calculator import (
+    CBAM_CATALOG,
+    calculate_cbam,
+    generate_cbam_xml,
 )
-from tools.hard_currency_engine.eaa_scanner import audit_html_content, generate_declaration_accessibilite
-from tools.hard_currency_engine.crm_dispatcher import dispatch_campaign, load_targets
+from tools.hard_currency_engine.crm_dispatcher import dispatch_campaign
+from tools.hard_currency_engine.eaa_scanner import (
+    audit_html_content,
+    generate_declaration_accessibilite,
+)
+from tools.hard_currency_engine.france_validator import audit_french_csv, format_french_report
+from tools.hard_currency_engine.zatca_validator import (
+    decode_zatca_tlv,
+    encode_zatca_tlv,
+)
 
 
 def cmd_france(args):
@@ -69,10 +72,14 @@ def cmd_cbam(args):
     print(f"Installation d'origine : {res['installation']} ({res['pays_origine']})")
     print(f"Volume : {res['tonnes']:,.0f} t | Prix CO2 : {res['prix_certificat']:.2f} €/t")
     print(f"Émission défaut UE (avec markup) : {res['see_default']:.3f} tCO2/t")
-    print(f"Émission réelle mesurée Algérie  : {res['see_actual']:.3f} tCO2/t (-{(res['gain_carbone_tonne']/res['see_default']*100):.1f}%)")
+    print(
+        f"Émission réelle mesurée Algérie  : {res['see_actual']:.3f} tCO2/t (-{(res['gain_carbone_tonne'] / res['see_default'] * 100):.1f}%)"
+    )
     print(f"Coût certificats avec valeur par défaut : {res['cout_default']:,.2f} €")
     print(f"Coût certificats avec données réelles   : {res['cout_actual']:,.2f} €")
-    print(f"💰 ÉCONOMIE NETTE POUR L'IMPORTATEUR    : {res['economie_totale']:,.2f} € ({res['economie_par_tonne']:.2f} €/t)")
+    print(
+        f"💰 ÉCONOMIE NETTE POUR L'IMPORTATEUR    : {res['economie_totale']:,.2f} € ({res['economie_par_tonne']:.2f} €/t)"
+    )
     print(f"🛡️  Pénalité réglementaire évitée (100€/t): {res['penalite_evitee']:,.2f} €")
     print("=" * 80)
 
@@ -87,7 +94,10 @@ def cmd_zatca(args):
         # Example format: "NomVendeur|TVA|Timestamp|Total|TVA_Montant"
         parts = args.qr_encode.split("|")
         if len(parts) < 5:
-            print("Format attendu pour --qr-encode : 'Vendeur|TVA15|ISO_Time|Total|TotalTVA'", file=sys.stderr)
+            print(
+                "Format attendu pour --qr-encode : 'Vendeur|TVA15|ISO_Time|Total|TotalTVA'",
+                file=sys.stderr,
+            )
             sys.exit(1)
         b64 = encode_zatca_tlv(parts[0], parts[1], parts[2], parts[3], parts[4])
         print(f"TLV Base64 QR Code :\n{b64}")
@@ -101,19 +111,29 @@ def cmd_zatca(args):
 
 
 def cmd_eaa(args):
-    html_text = Path(args.html_file).read_text(encoding="utf-8") if Path(args.html_file).exists() else args.html_file
+    html_text = (
+        Path(args.html_file).read_text(encoding="utf-8")
+        if Path(args.html_file).exists()
+        else args.html_file
+    )
     res = audit_html_content(html_text)
     print("=" * 80)
     print("AUDIT RAPIDE D'ACCESSIBILITÉ WEB (EAA / WCAG 2.1 AA)")
-    print(f"Images : {res['total_images']} | Formulaires : {res['total_inputs']} | Liens : {res['total_liens']}")
-    print(f"Statut : {'🟢 Conforme' if res['est_conforme'] else '🔴 Non-conformités critiques détectées'}")
+    print(
+        f"Images : {res['total_images']} | Formulaires : {res['total_inputs']} | Liens : {res['total_liens']}"
+    )
+    print(
+        f"Statut : {'🟢 Conforme' if res['est_conforme'] else '🔴 Non-conformités critiques détectées'}"
+    )
     print("-" * 80)
     for niveau, ref, msg in res["anomalies"]:
         print(f"  [{niveau}] {ref} : {msg}")
     print("=" * 80)
 
     if args.declaration:
-        decl = generate_declaration_accessibilite(args.company or "Entreprise E-commerce", "Boutique en ligne", "https://example.com")
+        decl = generate_declaration_accessibilite(
+            args.company or "Entreprise E-commerce", "Boutique en ligne", "https://example.com"
+        )
         Path(args.declaration).write_text(decl, encoding="utf-8")
         print(f"✅ Déclaration d'accessibilité légale générée : {args.declaration}")
 
@@ -122,11 +142,15 @@ def cmd_crm(args):
     csv_file = Path(args.targets_csv)
     out_dir = Path(args.output_dir)
     files = dispatch_campaign(csv_file, out_dir)
-    print(f"✅ Campagne générée avec succès : {len(files)} messages prêts à l'envoi dans '{out_dir}'.")
+    print(
+        f"✅ Campagne générée avec succès : {len(files)} messages prêts à l'envoi dans '{out_dir}'."
+    )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Hard Currency Engine — Suite d'outils d'exportation de services")
+    parser = argparse.ArgumentParser(
+        description="Hard Currency Engine — Suite d'outils d'exportation de services"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # France
@@ -150,7 +174,9 @@ def main():
 
     # ZATCA
     p_za = subparsers.add_parser("zatca", help="Validation et encodage ZATCA")
-    p_za.add_argument("--qr-encode", help="Encoder un QR TLV (format: Vendeur|TVA|Time|Total|TotalTVA)")
+    p_za.add_argument(
+        "--qr-encode", help="Encoder un QR TLV (format: Vendeur|TVA|Time|Total|TotalTVA)"
+    )
     p_za.add_argument("--qr-decode", help="Décoder une chaîne QR Base64")
 
     # EAA
@@ -162,7 +188,9 @@ def main():
     # CRM
     p_cr = subparsers.add_parser("crm", help="Dispatch de campagne de prospection")
     p_cr.add_argument("targets_csv", help="CSV des cibles qualifiées")
-    p_cr.add_argument("--output-dir", default="outreach_campaign", help="Répertoire de sortie des emails")
+    p_cr.add_argument(
+        "--output-dir", default="outreach_campaign", help="Répertoire de sortie des emails"
+    )
 
     args = parser.parse_args()
 
