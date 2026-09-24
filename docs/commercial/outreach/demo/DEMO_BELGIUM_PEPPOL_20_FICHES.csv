@@ -1,0 +1,22 @@
+# DONNEES DE DEMONSTRATION — REFERENTIEL CLIENTS/FOURNISSEURS BELGIQUE PEPPOL
+ID,Raison_sociale,Numero_BCE,Numero_TVA,Adresse,Code_postal,Ville,Email_facturation
+01,Cabinet Fiduciaire Brabant,0472.198.275,BE0472198275,Rue de Bruxelles 14,1300,Wavre,facturation@fiduciaire-brabant.be
+02,Garage Dupont & Fils SPRL,0431.139.363,BE0431139363,Boulevard d'Avroy 22,4000,Liège,comptabilite@dupont-garage.be
+03,Boulangerie Saint-Aubain,0435.889.195,BE0435889195,Rue de Fer 45,5000,Namur,contact@boulangerie-saintaubain.be
+04,Boulangerie Saint-Aubain SA,0435.889.195,BE0435889195,RUE DE FER 45,5000,NAMUR,factures@boulangerie-saintaubain.be
+05,Menuiserie Mosane SPRL,0465.191.244,BE0465191244,Avenue des Martyrs 12,5020,Champion,info@menuiserie-mosane.be
+06,Tech Solutions Bruxelles,0892.456.789,BE0892456789,Rue Royale 100,1000,Bruxelles,admin@techsolutions.be
+07,Pharmacie du Centre,0402.891.234,BE0402891234,Place Reine Astrid 5,7000,Mons,contact@pharmacie-mons.be
+08,Transport & Logistique Hainaut,0451.923.473,BE0451923473,Chaussée de Mons 88,6000,Charleroi,compta@transports-hainaut.be
+09,Boucherie des Ardennes,0821.993.570,,Grand Rue 12,6800,Libramont,boucherie@ardennes.be
+10,Societe Radiée SPRL (Ancienne),0891.004.422,BE0891004422,Rue Neuve 3,1000,Bruxelles,contact@ancienne-sprl.be
+11,Restaurant Leffe Dinant,0843.712.656,BE0843712656,Quai Churchill 8,5500,Dinant,leffe@dinant-resto.be
+12,Immobiliere Namuroise,0884.520.318,BE0884520318,Rue des Croisiers 19,5000,Namur,contact@immo-namur.be
+13,Immobilière Namuroise SA,0884.520.318,BE0884520318,RUE DES CROISIERS 19,5000,NAMUR,info@immo-namur.be
+14,Nettoyage Industriel Wallonie,0875.601.442,,Rue de la Poste 5,4000,Liège,factures@nettoyage-wallonie.be
+15,Auto-Ecole Conduite Pro,0853.940.245,BE0853940245,Boulevard Tirou 40,6000,Charleroi,contact@conduite-pro.be
+16,Electricite & Câblage Sambre,0904.018.876,BE0904018876,Rue de Mons 12,6000,CHARLEROI,electricite@sambre.be
+17,Brasserie Artisanale d'Ecaussinnes,0862.774.020,BE0862774020,Rue du Presbytère 1,7190,Ecaussinnes,biere@artisanale.be
+18,Studio Graphique & Print,0899.201.388,BE0899201388,Rue du Palais 14,4000,Liège,studio@print-liege.be
+19,Plomberie Chauffage Express,0911.457.810,BE0911457810,Route de Hannut 25,5004,Bouge,plomberie@express-bouge.be
+20,Optique Vision Plus Nivelles,0920.336.435,BE0920336435,Place Émile de Lalieux 9,1400,Nivelles,optique@vision-nivelles.be

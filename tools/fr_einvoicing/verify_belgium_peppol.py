@@ -111,7 +111,12 @@ def audit_peppol_csv(csv_path: Path) -> dict:
     seen_keys: dict[str, int] = {}
 
     with open(csv_path, mode="r", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
+        valid_lines = [line for line in f if not line.strip().startswith("#")]
+        if not valid_lines:
+            return results
+
+        delimiter = ";" if ";" in valid_lines[0] else ","
+        reader = csv.DictReader(valid_lines, delimiter=delimiter)
         fields = reader.fieldnames or []
 
         # Détection heuristique des colonnes
