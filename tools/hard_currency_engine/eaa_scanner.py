@@ -118,6 +118,83 @@ def _check_links(html_str: str, findings: list) -> int:
     return len(links)
 
 
+def _check_headings_and_tables(html_str: str, findings: list):
+    headings = [int(m.group(1)) for m in re.finditer(r"<h([1-6])\b", html_str, re.IGNORECASE)]
+    if headings and headings[0] != 1:
+        findings.append(
+            ("MAJEUR", "WCAG 2.4.1", f"La page commence par <h{headings[0]}> au lieu de <h1>")
+        )
+
+    for i in range(len(headings) - 1):
+        if headings[i + 1] > headings[i] + 1:
+            findings.append(
+                (
+                    "MOYEN",
+                    "WCAG 1.3.1",
+                    f"Rupture de hiérarchie : saut de <h{headings[i]}> à <h{headings[i + 1]}> sans niveau intermédiaire",
+                )
+            )
+            break
+
+    tables = re.findall(r"<table\b[^>]*>(.*?)</table>", html_str, re.IGNORECASE | re.DOTALL)
+    for table_content in tables:
+        if not re.search(r"<th\b", table_content, re.IGNORECASE):
+            findings.append(
+                (
+                    "MAJEUR",
+                    "WCAG 1.3.1",
+                    "Tableau de données sans en-tête <th> déclaré",
+                )
+            )
+            break
+
+
+def compute_accessibility_score(findings: list[tuple[str, str, str]]) -> float:
+    weights = {"CRITIQUE": 15, "MAJEUR": 8, "MOYEN": 4, "MINEUR": 2}
+    penalty = sum(weights.get(f[0], 5) for f in findings)
+    return float(max(0, 100 - penalty))
+
+
+def generate_remediation_guide(findings: list[tuple[str, str, str]]) -> list[dict]:
+    snippets = []
+    for crit, ref, desc in findings:
+        d_lower = desc.lower()
+        if "alt" in d_lower:
+            advice = "Ajouter un attribut alt descriptif à chaque image informative, ou alt='' si décorative."
+            snippet = '<img src="produit.jpg" alt="Description précise du produit">'
+        elif "lang" in d_lower:
+            advice = "Spécifier la langue principale du document dans la balise html."
+            snippet = '<html lang="fr">'
+        elif "champ" in d_lower or "étiquette" in d_lower:
+            advice = "Lier chaque champ de formulaire à une balise <label for='...'>."
+            snippet = '<label for="nom">Nom</label>\n<input type="text" id="nom" name="nom">'
+        elif "lien" in d_lower:
+            advice = (
+                "Remplacer les textes de lien vagues par des libellés explicites ou un aria-label."
+            )
+            snippet = '<a href="/catalogue" aria-label="Voir tout le catalogue">En savoir plus</a>'
+        elif "hiérarchie" in d_lower or "titre" in d_lower:
+            advice = "Respecter la hiérarchie séquentielle des titres (h1, puis h2, sans sauter de niveau)."
+            snippet = "<h1>Titre Principal</h1>\n<h2>Section</h2>\n<h3>Sous-section</h3>"
+        elif "tableau" in d_lower:
+            advice = "Déclarer des en-têtes <th> avec attribut scope pour structurer les colonnes."
+            snippet = '<table><thead><tr><th scope="col">Article</th><th scope="col">Prix</th></tr></thead></table>'
+        else:
+            advice = "Corriger selon les critères de conformité WCAG 2.1 AA."
+            snippet = "<!-- Solution conforme requise -->"
+
+        snippets.append(
+            {
+                "criticite": crit,
+                "norme": ref,
+                "constat": desc,
+                "conseil": advice,
+                "snippet_solution": snippet,
+            }
+        )
+    return snippets
+
+
 def audit_html_content(html_str: str) -> dict:
     """Analyse un contenu HTML pour détecter les non-conformités critiques EAA / WCAG 2.1 AA."""
     findings: list[tuple[str, str, str]] = []
@@ -125,13 +202,17 @@ def audit_html_content(html_str: str) -> dict:
     total_imgs = _check_images(html_str, findings)
     total_inputs = _check_inputs(html_str, findings)
     total_liens = _check_links(html_str, findings)
+    _check_headings_and_tables(html_str, findings)
+    score = compute_accessibility_score(findings)
 
     return {
         "total_images": total_imgs,
         "total_inputs": total_inputs,
         "total_liens": total_liens,
+        "score_accessibilite": score,
         "anomalies": findings,
         "est_conforme": len(findings) == 0,
+        "guide_remediation": generate_remediation_guide(findings),
     }
 
 

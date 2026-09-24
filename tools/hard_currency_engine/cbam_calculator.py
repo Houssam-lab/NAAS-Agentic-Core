@@ -111,6 +111,65 @@ def calculate_cbam(
     }
 
 
+def generate_sensitivity_table(res: dict) -> list[dict]:
+    """Analyse de sensibilité financière selon différents cours du quota carbone EU ETS."""
+    prices = [65.0, 75.0, 85.0, 95.0, 105.0]
+    out = []
+    tonnes = res["tonnes"]
+    see_def = res["see_default"]
+    see_act = res["see_actual"]
+    item = CBAM_CATALOG.get(res["code_hs"], {})
+    bm = item.get("bm_free_alloc", 0.45)
+    exp_factor = 1.0 - CBAM_FACTOR_2026
+    net_def_t = max(0.0, see_def - bm * CBAM_FACTOR_2026) * exp_factor
+    net_act_t = max(0.0, see_act - bm * CBAM_FACTOR_2026) * exp_factor
+
+    for p in prices:
+        cost_def = tonnes * net_def_t * p
+        cost_act = tonnes * net_act_t * p
+        sav = cost_def - cost_act
+        out.append(
+            {
+                "prix_co2": p,
+                "cout_defaut": cost_def,
+                "cout_reel": cost_act,
+                "economie_eur": sav,
+            }
+        )
+    return out
+
+
+def calculate_cbam_batch(manifest_rows: list[dict], cert_price: float = CERT_PRICE_DEFAULT) -> dict:
+    """Calcul consolidé pour un manifeste de cargaison multi-produits."""
+    items = []
+    total_tonnes = 0.0
+    total_saving = 0.0
+    total_def_cost = 0.0
+    total_act_cost = 0.0
+
+    for row in manifest_rows:
+        hs = str(row.get("code_hs") or row.get("hs") or "").strip()
+        if hs not in CBAM_CATALOG:
+            continue
+        t = float(row.get("tonnes") or 0.0)
+        see_ov = float(row["see_actual"]) if row.get("see_actual") else None
+        single_res = calculate_cbam(hs, t, see_override=see_ov, cert_price=cert_price)
+        items.append(single_res)
+        total_tonnes += t
+        total_saving += single_res["economie_totale"]
+        total_def_cost += single_res["cout_default"]
+        total_act_cost += single_res["cout_actual"]
+
+    return {
+        "nb_lignes": len(items),
+        "total_tonnes": total_tonnes,
+        "total_cout_defaut": total_def_cost,
+        "total_cout_reel": total_act_cost,
+        "economie_globale_eur": total_saving,
+        "lignes": items,
+    }
+
+
 def generate_cbam_xml(res: dict, declarant_eori: str = "FR12345678900012") -> str:
     """Génère un extrait XML conforme au portail déclaratif CBAM de la Commission Européenne."""
     root = ET.Element(

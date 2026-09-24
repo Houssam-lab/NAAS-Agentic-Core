@@ -69,6 +69,43 @@ def tva_fr_check(tva: str) -> tuple[bool, str, str]:
     return True, t, "OK"
 
 
+def compute_french_vat_key(siren: str) -> str:
+    """Calcule le numéro complet de TVA intracommunautaire français à partir du SIREN."""
+    s = re.sub(r"\D", "", siren or "")
+    if len(s) != 9 or not s.isdigit():
+        return ""
+    key = str((12 + 3 * (int(s) % 97)) % 97).zfill(2)
+    return f"FR{key}{s}"
+
+
+def _read_csv_lines_multi_encoding(csv_path: Path) -> list[str]:
+    encodings = ["utf-8-sig", "utf-8", "cp1252", "iso-8859-1", "latin1"]
+    raw_bytes = csv_path.read_bytes()
+    for enc in encodings:
+        try:
+            text = raw_bytes.decode(enc)
+            return [
+                line for line in text.splitlines(keepends=True) if not line.strip().startswith("#")
+            ]
+        except UnicodeDecodeError:
+            continue
+    text = raw_bytes.decode("utf-8", errors="replace")
+    return [line for line in text.splitlines(keepends=True) if not line.strip().startswith("#")]
+
+
+def export_cleaned_french_csv(results: dict, out_path: Path) -> Path:
+    annotees = results.get("annotees", [])
+    if not annotees:
+        out_path.write_text("", encoding="utf-8")
+        return out_path
+    fields = list(annotees[0].keys())
+    with open(out_path, mode="w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fields, delimiter=";")
+        writer.writeheader()
+        writer.writerows(annotees)
+    return out_path
+
+
 def _validate_french_row(
     row: dict, cols: dict, line_no: int, seen_dedup: dict
 ) -> tuple[list[str], bool, bool, bool]:
@@ -79,36 +116,36 @@ def _validate_french_row(
     tva_val = row.get(cols["tva"], "") if cols["tva"] else ""
     cp_val = row.get(cols["cp"], "") if cols["cp"] else ""
 
-    err_siren = False
-    err_siret = False
-    err_tva = False
+    has_siren_err = False
+    has_siret_err = False
+    has_tva_err = False
 
     if siren_val:
-        ok_s, _, err_s = siren_check(siren_val)
+        ok_s, _, msg_s = siren_check(siren_val)
         if not ok_s:
-            err_siren = True
-            line_errors.append(f"SIREN_INVALID({err_s})")
+            has_siren_err = True
+            line_errors.append(f"SIREN_INVALID({msg_s})")
     elif siret_val:
         siren_from_siret = re.sub(r"\D", "", siret_val)[:9]
-        ok_s, _, err_s = siren_check(siren_from_siret)
+        ok_s, _, msg_s = siren_check(siren_from_siret)
         if not ok_s:
-            err_siren = True
-            line_errors.append(f"SIREN_DERIVE_INVALID({err_s})")
+            has_siren_err = True
+            line_errors.append(f"SIREN_DERIVE_INVALID({msg_s})")
     else:
-        err_siren = True
+        has_siren_err = True
         line_errors.append("SIREN_MANQUANT")
 
     if siret_val:
-        ok_st, _, err_st = siret_check(siret_val)
+        ok_st, _, msg_st = siret_check(siret_val)
         if not ok_st:
-            err_siret = True
-            line_errors.append(f"SIRET_INVALID({err_st})")
+            has_siret_err = True
+            line_errors.append(f"SIRET_INVALID({msg_st})")
 
     if tva_val:
-        ok_tva, _, err_tva = tva_fr_check(tva_val)
+        ok_tva, _, msg_tva = tva_fr_check(tva_val)
         if not ok_tva:
-            err_tva = True
-            line_errors.append(f"TVA_INVALID({err_tva})")
+            has_tva_err = True
+            line_errors.append(f"TVA_INVALID({msg_tva})")
 
     dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
     if len(dedup_key) > 5:
@@ -117,7 +154,7 @@ def _validate_french_row(
         else:
             seen_dedup[dedup_key] = line_no
 
-    return line_errors, err_siren, err_siret, err_tva
+    return line_errors, has_siren_err, has_siret_err, has_tva_err
 
 
 def audit_french_csv(csv_path: Path) -> dict:
@@ -137,59 +174,64 @@ def audit_french_csv(csv_path: Path) -> dict:
     }
 
     seen_dedup: dict[str, int] = {}
+    valid_lines = _read_csv_lines_multi_encoding(csv_path)
+    if not valid_lines:
+        return results
 
-    with open(csv_path, encoding="utf-8-sig") as f:
-        valid_lines = [line for line in f if not line.strip().startswith("#")]
-        if not valid_lines:
-            return results
+    delimiter = ";" if ";" in valid_lines[0] else ","
+    reader = csv.DictReader(valid_lines, delimiter=delimiter)
+    fields = reader.fieldnames or []
 
-        delimiter = ";" if ";" in valid_lines[0] else ","
-        reader = csv.DictReader(valid_lines, delimiter=delimiter)
-        fields = reader.fieldnames or []
+    cols = {
+        "nom": next(
+            (c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None
+        ),
+        "siren": next((c for c in fields if re.search(r"siren", c, re.I)), None),
+        "siret": next((c for c in fields if re.search(r"siret", c, re.I)), None),
+        "tva": next((c for c in fields if re.search(r"tva|vat", c, re.I)), None),
+        "cp": next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None),
+    }
 
-        cols = {
-            "nom": next(
-                (c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None
-            ),
-            "siren": next((c for c in fields if re.search(r"siren", c, re.I)), None),
-            "siret": next((c for c in fields if re.search(r"siret", c, re.I)), None),
-            "tva": next((c for c in fields if re.search(r"tva|vat", c, re.I)), None),
-            "cp": next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None),
-        }
+    for line_no, row in enumerate(reader, start=2):
+        results["total"] += 1
+        line_errors, err_siren, err_siret, err_tva = _validate_french_row(
+            row, cols, line_no, seen_dedup
+        )
+        if err_siren:
+            results["erreurs_siren"] += 1
+        if err_siret:
+            results["erreurs_siret"] += 1
+        if err_tva:
+            results["erreurs_tva"] += 1
+        if any("DOUBLON" in err for err in line_errors):
+            results["doublons"] += 1
 
-        for line_no, row in enumerate(reader, start=2):
-            results["total"] += 1
-            line_errors, err_siren, err_siret, err_tva = _validate_french_row(
-                row, cols, line_no, seen_dedup
+        nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+        siren_val = row.get(cols["siren"], "") if cols["siren"] else ""
+        siret_val = row.get(cols["siret"], "") if cols["siret"] else ""
+
+        if line_errors:
+            results["anomalies"].append(
+                {
+                    "ligne": line_no,
+                    "nom": nom_val,
+                    "siren": siren_val or siret_val[:9] if siret_val else "",
+                    "erreurs": line_errors,
+                }
             )
-            if err_siren:
-                results["erreurs_siren"] += 1
-            if err_siret:
-                results["erreurs_siret"] += 1
-            if err_tva:
-                results["erreurs_tva"] += 1
-            if any("DOUBLON" in err for err in line_errors):
-                results["doublons"] += 1
+        else:
+            results["valides"] += 1
 
-            nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
-            siren_val = row.get(cols["siren"], "") if cols["siren"] else ""
-            siret_val = row.get(cols["siret"], "") if cols["siret"] else ""
-
-            if line_errors:
-                results["anomalies"].append(
-                    {
-                        "ligne": line_no,
-                        "nom": nom_val,
-                        "siren": siren_val or siret_val[:9] if siret_val else "",
-                        "erreurs": line_errors,
-                    }
-                )
-            else:
-                results["valides"] += 1
-
-            row_ann = dict(row)
-            row_ann["ANOMALIES_RFE"] = "; ".join(line_errors) if line_errors else "CONFORME"
-            results["annotees"].append(row_ann)
+        row_ann = dict(row)
+        clean_s = re.sub(r"\D", "", siren_val) or (
+            re.sub(r"\D", "", siret_val)[:9] if siret_val else ""
+        )
+        row_ann["ANOMALIES_RFE"] = "; ".join(line_errors) if line_errors else "CONFORME"
+        row_ann["STATUT_RFE"] = "CONFORME" if not line_errors else "A_CORRIGER"
+        row_ann["TVA_FR_CALCULEE"] = (
+            compute_french_vat_key(clean_s) if clean_s and luhn_ok(clean_s) else ""
+        )
+        results["annotees"].append(row_ann)
 
     return results
 

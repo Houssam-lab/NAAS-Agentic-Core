@@ -7,6 +7,8 @@ Vérification تشفيرية وفحص سلاسل الفواتير الإلكتر
 from __future__ import annotations
 
 import base64
+import hashlib
+import re
 import uuid
 
 GENESIS_PIH = (
@@ -20,6 +22,23 @@ def validate_uuid_v4(val: str) -> bool:
         return str(u) == (val or "").strip().lower()
     except (ValueError, AttributeError):
         return False
+
+
+def validate_zatca_vat_number(vat_str: str) -> tuple[bool, str]:
+    """Validation du numéro fiscal saoudien (15 chiffres, début et fin = 3)."""
+    s = re.sub(r"\D", "", vat_str or "")
+    if len(s) != 15:
+        return False, f"Longueur {len(s)} ≠ 15 chiffres"
+    if not (s.startswith("3") and s.endswith("3")):
+        return False, "Doit débuter et se terminer par 3"
+    return True, "OK"
+
+
+def canonical_invoice_hash(xml_content: str) -> str:
+    """Calcule le hash SHA-256 canonique en Base64 d'une facture XML ZATCA."""
+    clean_xml = re.sub(r">\s+<", "><", (xml_content or "").strip())
+    digest = hashlib.sha256(clean_xml.encode("utf-8")).digest()
+    return base64.b64encode(digest).decode("ascii")
 
 
 def is_valid_base64_sha256(hash_str: str) -> bool:
@@ -41,10 +60,12 @@ def encode_zatca_tlv(
     vat_amount: str,
     invoice_hash: str = "",
     crypto_stamp: str = "",
+    public_key: str = "",
+    stamp_signature: str = "",
 ) -> str:
     """
     Encode un QR Code TLV (Tag-Length-Value) officiel ZATCA en Base64.
-    Tags 1-5 sont obligatoires pour les factures simplifiées B2C.
+    Tags 1-5 sont obligatoires pour B2C simplifié. Tags 6-9 pour Phase 2 B2B.
     """
     tags = [
         (1, seller_name.encode("utf-8")),
@@ -57,6 +78,10 @@ def encode_zatca_tlv(
         tags.append((6, invoice_hash.encode("utf-8")))
     if crypto_stamp:
         tags.append((7, crypto_stamp.encode("utf-8")))
+    if public_key:
+        tags.append((8, public_key.encode("utf-8")))
+    if stamp_signature:
+        tags.append((9, stamp_signature.encode("utf-8")))
 
     tlv_bytes = bytearray()
     for tag_num, val_bytes in tags:
@@ -132,3 +157,38 @@ def audit_zatca_batch(invoices: list[dict]) -> dict:
         "est_valide": len(anomalies) == 0,
         "anomalies": anomalies,
     }
+
+
+def repair_zatca_chain(invoices: list[dict]) -> tuple[list[dict], list[str]]:
+    """Répare une séquence de factures ZATCA rompue (réaligne ICV et recalcule la chaîne PIH)."""
+    repaired = []
+    actions = []
+    curr_pih = GENESIS_PIH
+
+    for i, inv in enumerate(invoices, start=1):
+        item = dict(inv)
+        inv_id = item.get("id", f"INV-{i}")
+
+        if item.get("icv") != i:
+            actions.append(f"Facture {inv_id} : ICV corrigé de {item.get('icv')} à {i}")
+            item["icv"] = i
+
+        if item.get("pih") != curr_pih:
+            actions.append(f"Facture {inv_id} : PIH réaligné sur le hash précédent")
+            item["pih"] = curr_pih
+
+        if not validate_uuid_v4(item.get("uuid", "")):
+            new_u = str(uuid.uuid4())
+            actions.append(f"Facture {inv_id} : UUID généré ({new_u})")
+            item["uuid"] = new_u
+
+        if not is_valid_base64_sha256(item.get("invoice_hash", "")):
+            synth_content = f"{item['uuid']}|{item['icv']}|{item['pih']}|{item.get('total', '0')}"
+            new_hash = canonical_invoice_hash(synth_content)
+            actions.append(f"Facture {inv_id} : Hash SHA-256 calculé ({new_hash[:10]}...)")
+            item["invoice_hash"] = new_hash
+
+        curr_pih = item["invoice_hash"]
+        repaired.append(item)
+
+    return repaired, actions

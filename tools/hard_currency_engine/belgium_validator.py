@@ -98,6 +98,34 @@ def _validate_belgian_row(
     return line_errors, err_bce, err_tva
 
 
+def _read_csv_lines_multi_encoding(csv_path: Path) -> list[str]:
+    encodings = ["utf-8-sig", "utf-8", "cp1252", "iso-8859-1", "latin1"]
+    raw_bytes = csv_path.read_bytes()
+    for enc in encodings:
+        try:
+            text = raw_bytes.decode(enc)
+            return [
+                line for line in text.splitlines(keepends=True) if not line.strip().startswith("#")
+            ]
+        except UnicodeDecodeError:
+            continue
+    text = raw_bytes.decode("utf-8", errors="replace")
+    return [line for line in text.splitlines(keepends=True) if not line.strip().startswith("#")]
+
+
+def export_cleaned_belgian_csv(results: dict, out_path: Path) -> Path:
+    annotees = results.get("annotees", [])
+    if not annotees:
+        out_path.write_text("", encoding="utf-8")
+        return out_path
+    fields = list(annotees[0].keys())
+    with open(out_path, mode="w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fields, delimiter=";")
+        writer.writeheader()
+        writer.writerows(annotees)
+    return out_path
+
+
 def audit_belgian_csv(csv_path: Path) -> dict:
     if not csv_path.exists():
         raise FileNotFoundError(f"Fichier introuvable : {csv_path}")
@@ -113,58 +141,55 @@ def audit_belgian_csv(csv_path: Path) -> dict:
     }
 
     seen_dedup: dict[str, int] = {}
+    valid_lines = _read_csv_lines_multi_encoding(csv_path)
+    if not valid_lines:
+        return results
 
-    with open(csv_path, encoding="utf-8-sig") as f:
-        valid_lines = [line for line in f if not line.strip().startswith("#")]
-        if not valid_lines:
-            return results
+    delimiter = ";" if ";" in valid_lines[0] else ","
+    reader = csv.DictReader(valid_lines, delimiter=delimiter)
+    fields = reader.fieldnames or []
 
-        delimiter = ";" if ";" in valid_lines[0] else ","
-        reader = csv.DictReader(valid_lines, delimiter=delimiter)
-        fields = reader.fieldnames or []
+    cols = {
+        "nom": next(
+            (c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None
+        ),
+        "bce": next((c for c in fields if re.search(r"bce|kbo|entreprise|siren", c, re.I)), None),
+        "tva": next((c for c in fields if re.search(r"tva|vat", c, re.I)), None),
+        "cp": next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None),
+    }
 
-        cols = {
-            "nom": next(
-                (c for c in fields if re.search(r"nom|raison|client|fournisseur", c, re.I)), None
-            ),
-            "bce": next(
-                (c for c in fields if re.search(r"bce|kbo|entreprise|siren", c, re.I)), None
-            ),
-            "tva": next((c for c in fields if re.search(r"tva|vat", c, re.I)), None),
-            "cp": next((c for c in fields if re.search(r"cp|postal|zip", c, re.I)), None),
-        }
+    for line_no, row in enumerate(reader, start=2):
+        results["total"] += 1
+        line_errors, err_bce, err_tva = _validate_belgian_row(row, cols, line_no, seen_dedup)
+        if err_bce:
+            results["erreurs_bce"] += 1
+        if err_tva:
+            results["erreurs_tva"] += 1
+        if any("DOUBLON" in err for err in line_errors):
+            results["doublons"] += 1
 
-        for line_no, row in enumerate(reader, start=2):
-            results["total"] += 1
-            line_errors, err_bce, err_tva = _validate_belgian_row(row, cols, line_no, seen_dedup)
-            if err_bce:
-                results["erreurs_bce"] += 1
-            if err_tva:
-                results["erreurs_tva"] += 1
-            if any("DOUBLON" in err for err in line_errors):
-                results["doublons"] += 1
+        nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
+        bce_val = row.get(cols["bce"], "") if cols["bce"] else ""
 
-            nom_val = row.get(cols["nom"], "") if cols["nom"] else ""
-            bce_val = row.get(cols["bce"], "") if cols["bce"] else ""
-
-            if line_errors:
-                results["anomalies"].append(
-                    {
-                        "ligne": line_no,
-                        "nom": nom_val,
-                        "bce": bce_val,
-                        "erreurs": line_errors,
-                    }
-                )
-            else:
-                results["valides"] += 1
-
-            row_ann = dict(row)
-            row_ann["ANOMALIES_PEPPOL"] = "; ".join(line_errors) if line_errors else "CONFORME"
-            row_ann["PEPPOL_ID"] = (
-                format_peppol_id(bce_val) if bce_val and not line_errors else "A_CORRIGER"
+        if line_errors:
+            results["anomalies"].append(
+                {
+                    "ligne": line_no,
+                    "nom": nom_val,
+                    "bce": bce_val,
+                    "erreurs": line_errors,
+                }
             )
-            results["annotees"].append(row_ann)
+        else:
+            results["valides"] += 1
+
+        row_ann = dict(row)
+        row_ann["ANOMALIES_PEPPOL"] = "; ".join(line_errors) if line_errors else "CONFORME"
+        row_ann["PEPPOL_ID"] = (
+            format_peppol_id(bce_val) if bce_val and not line_errors else "A_CORRIGER"
+        )
+        row_ann["STATUT_PEPPOL"] = "COMPATIBLE" if not line_errors else "NON_CONFORME"
+        results["annotees"].append(row_ann)
 
     return results
 
