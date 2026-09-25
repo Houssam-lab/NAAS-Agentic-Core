@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 verify_referentiels.py — Outil de diagnostic des référentiels clients/fournisseurs
 pour la facturation électronique française.
@@ -34,12 +33,12 @@ import re
 import sys
 import time
 import unicodedata
-import urllib.request
 import urllib.parse
+import urllib.request
 from pathlib import Path
 
-
 # ---------------------------------------------------------------- utilitaires
+
 
 def strip_accents(s: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
@@ -97,9 +96,13 @@ KNOWN_CITY_FIX = {"TOULOUSEE": "TOULOUSE"}
 
 # ---------------------------------------------------------------- lecture CSV
 
+
 def load_rows(path: Path):
-    raw = [ln for ln in path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
-           if ln.strip() and not ln.lstrip().startswith("#")]
+    raw = [
+        ln
+        for ln in path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+        if ln.strip() and not ln.lstrip().startswith("#")
+    ]
     if not raw:
         sys.exit("Fichier vide.")
     sample = "\n".join(raw[:5])
@@ -139,7 +142,7 @@ def api_lookup(siren: str, timeout: int = 10) -> dict:
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             data = json.loads(r.read().decode("utf-8"))
-        res = (data.get("results") or [])
+        res = data.get("results") or []
         if not res:
             return {"trouve": False}
         e = res[0]
@@ -157,59 +160,115 @@ def api_lookup(siren: str, timeout: int = 10) -> dict:
 
 # ---------------------------------------------------------------- analyse
 
+
+def _check_siren_siret_tva(siren, siret, tva, rid):
+    findings = []
+    # SIREN
+    if not siren:
+        findings.append((rid, "CRITIQUE", "SIREN", "manquant", "compléter avant tout envoi"))
+    elif not siren_ok(siren):
+        findings.append(
+            (rid, "CRITIQUE", "SIREN", f"clé invalide ({siren})", "vérifier contre SIRENE")
+        )
+
+    # SIRET
+    if siret and not siret_ok(siret):
+        if len(siret) != 14:
+            findings.append(
+                (rid, "CRITIQUE", "SIRET", f"longueur {len(siret)} ≠ 14", "compléter le suffixe")
+            )
+        else:
+            findings.append(
+                (rid, "CRITIQUE", "SIRET", f"clé invalide ({siret})", "correction requise")
+            )
+    if siren and siret and len(siret) == 14 and not siret.startswith(siren):
+        findings.append(
+            (rid, "CRITIQUE", "SIRET", "ne correspond pas au SIREN", "réassocier l'établissement")
+        )
+
+    # TVA
+    if tva:
+        okf, okk, attendu = tva_check(tva)
+        if not okf:
+            findings.append(
+                (rid, "CRITIQUE", "TVA", f"format invalide ({tva})", "reformater FR+2+SIREN")
+            )
+        elif not okk:
+            findings.append(
+                (
+                    rid,
+                    "CRITIQUE",
+                    "TVA",
+                    f"clé erronée ({tva}) → attendu FR{attendu}{siren or '?'}",
+                    "reformater",
+                )
+            )
+    else:
+        findings.append((rid, "CRITIQUE", "TVA", "manquante", "compléter (clé = f(SIREN))"))
+
+    return findings
+
+
+def _check_row_fields(r, mapping, idx, seen_exact, seen_quasi):
+    def get_val(k):
+        return (r.get(mapping[k]) or "").strip() if mapping[k] else ""
+
+    rid, nom = get_val("id") or str(idx), get_val("nom")
+    siren, siret = re.sub(r"\D", "", get_val("siren")), re.sub(r"\D", "", get_val("siret"))
+    ville, cp, tva = get_val("ville"), get_val("cp"), get_val("tva")
+
+    findings = _check_siren_siret_tva(siren, siret, tva, rid)
+
+    # doublons exacts
+    key = (siren, siret)
+    if key in seen_exact and siren:
+        findings.append(
+            (
+                rid,
+                "MAJEUR",
+                "DOUBLON",
+                f"exact = fiche {seen_exact[key]} ({nom})",
+                "fusion à arbitrer chez le client",
+            )
+        )
+    else:
+        seen_exact[key] = rid
+
+    # quasi-doublons
+    qk = (norm(nom), cp)
+    if nom and qk in seen_quasi and qk != ("", ""):
+        findings.append(
+            (
+                rid,
+                "MAJEUR",
+                "QUASI-DOUBLON",
+                f"nom+CP = fiche {seen_quasi[qk]}",
+                "fusion à arbitrer",
+            )
+        )
+    else:
+        seen_quasi[qk] = rid
+
+    # normalisation
+    if ville and ville.upper() in KNOWN_CITY_FIX:
+        findings.append(
+            (rid, "MINEUR", "VILLE", f"« {ville} » → {KNOWN_CITY_FIX[ville.upper()]}", "normaliser")
+        )
+    if re.search(r"[a-zà-ÿ]{3,}", ville or "") and ville != ville.upper():
+        findings.append((rid, "MINEUR", "VILLE", "casse incohérente", "tout en majuscules"))
+
+    return findings, rid, nom, siren
+
+
 def analyse(rows, mapping, online=False, sleep=0.2):
-    findings = []          # (fiche, criticite, champ, detail, action)
-    seen_exact = {}        # (siren,siret) -> idx
-    seen_quasi = {}        # (nom_norm,cp) -> idx
+    findings = []  # (fiche, criticite, champ, detail, action)
+    seen_exact = {}  # (siren,siret) -> idx
+    seen_quasi = {}  # (nom_norm,cp) -> idx
     api_cache = {}
 
     for idx, r in enumerate(rows, start=1):
-        g = lambda k: (r.get(mapping[k]) or "").strip() if mapping[k] else ""
-        rid, nom = g("id") or str(idx), g("nom")
-        siren, siret = re.sub(r"\D", "", g("siren")), re.sub(r"\D", "", g("siret"))
-        ville, cp, tva = g("ville"), g("cp"), g("tva")
-
-        # SIREN
-        if not siren:
-            findings.append((rid, "CRITIQUE", "SIREN", "manquant", "compléter avant tout envoi"))
-        elif not siren_ok(siren):
-            findings.append((rid, "CRITIQUE", "SIREN", f"clé invalide ({siren})", "vérifier contre SIRENE"))
-        # SIRET
-        if siret and not siret_ok(siret):
-            if len(siret) != 14:
-                findings.append((rid, "CRITIQUE", "SIRET", f"longueur {len(siret)} ≠ 14", "compléter le suffixe"))
-            else:
-                findings.append((rid, "CRITIQUE", "SIRET", f"clé invalide ({siret})", "correction requise"))
-        if siren and siret and len(siret) == 14 and not siret.startswith(siren):
-            findings.append((rid, "CRITIQUE", "SIRET", "ne correspond pas au SIREN", "réassocier l'établissement"))
-        # TVA
-        if tva:
-            okf, okk, attendu = tva_check(tva)
-            if not okf:
-                findings.append((rid, "CRITIQUE", "TVA", f"format invalide ({tva})", "reformater FR+2+SIREN"))
-            elif not okk:
-                findings.append((rid, "CRITIQUE", "TVA", f"clé erronée ({tva}) → attendu FR{attendu}{siren or '?'}", "reformater"))
-        else:
-            findings.append((rid, "CRITIQUE", "TVA", "manquante", "compléter (clé = f(SIREN))"))
-
-        # doublons exacts
-        key = (siren, siret)
-        if key in seen_exact and siren:
-            findings.append((rid, "MAJEUR", "DOUBLON", f"exact = fiche {seen_exact[key]} ({nom})", "fusion à arbitrer chez le client"))
-        else:
-            seen_exact[key] = rid
-        # quasi-doublons
-        qk = (norm(nom), cp)
-        if nom and qk in seen_quasi and qk != ("", ""):
-            findings.append((rid, "MAJEUR", "QUASI-DOUBLON", f"nom+CP = fiche {seen_quasi[qk]}", "fusion à arbitrer"))
-        else:
-            seen_quasi[qk] = rid
-
-        # normalisation
-        if ville and ville.upper() in KNOWN_CITY_FIX:
-            findings.append((rid, "MINEUR", "VILLE", f"« {ville} » → {KNOWN_CITY_FIX[ville.upper()]}", "normaliser"))
-        if re.search(r"[a-zà-ÿ]{3,}", ville or "") and ville != ville.upper():
-            findings.append((rid, "MINEUR", "VILLE", "casse incohérente", "tout en majuscules"))
+        row_findings, rid, nom, siren = _check_row_fields(r, mapping, idx, seen_exact, seen_quasi)
+        findings.extend(row_findings)
 
         # API publique
         if online and siren and siren_ok(siren):
@@ -220,17 +279,42 @@ def analyse(rows, mapping, online=False, sleep=0.2):
                 api_cache[siren] = info
                 time.sleep(sleep)
             if info.get("trouve") is False:
-                findings.append((rid, "CRITIQUE", "SIRENE", "entité introuvable", "blocage : vérifier la saisie"))
+                findings.append(
+                    (
+                        rid,
+                        "CRITIQUE",
+                        "SIRENE",
+                        "entité introuvable",
+                        "blocage : vérifier la saisie",
+                    )
+                )
             elif info.get("trouve") is True:
                 if not info.get("actif"):
-                    findings.append((rid, "CRITIQUE", "SIRENE", f"état administratif = {info.get('etat')} (radiée ?)", "retirer de la base (décision client)"))
+                    findings.append(
+                        (
+                            rid,
+                            "CRITIQUE",
+                            "SIRENE",
+                            f"état administratif = {info.get('etat')} (radiée ?)",
+                            "retirer de la base (décision client)",
+                        )
+                    )
                 nom_off = norm(info.get("nom_officiel") or "")
                 if nom and nom_off and nom[:12] not in nom_off and nom_off[:12] not in nom:
-                    findings.append((rid, "MINEUR", "DENOMINATION", f"diffère de « {info.get('nom_officiel')} »", "aligner sur la raison sociale officielle"))
+                    findings.append(
+                        (
+                            rid,
+                            "MINEUR",
+                            "DENOMINATION",
+                            f"diffère de « {info.get('nom_officiel')} »",
+                            "aligner sur la raison sociale officielle",
+                        )
+                    )
     return findings
 
 
 # ---------------------------------------------------------------- rapport
+
 
 def rapport(rows, findings, online_used: bool) -> str:
     n = len(rows)
@@ -238,43 +322,63 @@ def rapport(rows, findings, online_used: bool) -> str:
     scores = {"CRITIQUE": 0, "MAJEUR": 0, "MINEUR": 0}
     for f in findings:
         scores[f[1]] += 1
-    total = sum(scores.values())
     quality = max(0, 100 - scores["CRITIQUE"] * 5 - scores["MAJEUR"] * 3 - scores["MINEUR"] * 1)
-    L = []
-    L.append("# RAPPORT DE DIAGNOSTIC — RÉFÉRENTIELS CLIENTS\n")
-    L.append(f"**Fiches analysées :** {n} · **Fiches avec défauts :** {fiches_touchees} "
-             f"({100 * fiches_touchees // max(n, 1)} %) · **Score de qualité : {quality}/100**\n")
-    L.append(f"| Criticité | Nombre |\n|---|---|\n"
-             f"| 🔴 Critique (rejet probable) | {scores['CRITIQUE']} |\n"
-             f"| 🟠 Majeur (doublons / routage incertain) | {scores['MAJEUR']} |\n"
-             f"| 🟡 Mineur (normalisation) | {scores['MINEUR']} |\n")
+    lines = []
+    lines.append("# RAPPORT DE DIAGNOSTIC — RÉFÉRENTIELS CLIENTS\n")
+    lines.append(
+        f"**Fiches analysées :** {n} · **Fiches avec défauts :** {fiches_touchees} "
+        f"({100 * fiches_touchees // max(n, 1)} %) · **Score de qualité : {quality}/100**\n"
+    )
+    lines.append(
+        f"| Criticité | Nombre |\n|---|---|\n"
+        f"| 🔴 Critique (rejet probable) | {scores['CRITIQUE']} |\n"
+        f"| 🟠 Majeur (doublons / routage incertain) | {scores['MAJEUR']} |\n"
+        f"| 🟡 Mineur (normalisation) | {scores['MINEUR']} |\n"
+    )
     if findings:
-        L.append("## Détail des défauts détectés\n\n"
-                 "| Fiche | Criticité | Champ | Constat | Action proposée |\n|---|---|---|---|---|")
+        lines.append(
+            "## Détail des défauts détectés\n\n"
+            "| Fiche | Criticité | Champ | Constat | Action proposée |\n|---|---|---|---|---|"
+        )
         for rid, crit, champ, detail, action in findings:
-            L.append(f"| {rid} | {crit} | {champ} | {detail} | {action} |")
+            lines.append(f"| {rid} | {crit} | {champ} | {detail} | {action} |")
     else:
-        L.append("Aucun défaut détecté — référentiel propre sur les contrôles appliqués.")
-    L.append("\n## Limites de ce contrôle\n")
-    L.append("- Vérifications locales : clés SIREN/SIRET (Luhn), cohérence SIREN↔SIRET, format & clé TVA, doublons, normalisation.")
-    L.append("- " + ("Existence & état administratif vérifiés contre l'API publique recherche-entreprises.api.gouv.fr." if online_used
-                      else "Mode OFFLINE : existence des entités NON vérifiée contre SIRENE (relancer avec --online)."))
-    L.append("- Les décisions de fusion/suppression restent à la main du client ; aucune donnée comptable ou fiscale n'est touchée.")
-    return "\n".join(L) + "\n"
+        lines.append("Aucun défaut détecté — référentiel propre sur les contrôles appliqués.")
+    lines.append("\n## Limites de ce contrôle\n")
+    lines.append(
+        "- Vérifications locales : clés SIREN/SIRET (Luhn), cohérence SIREN↔SIRET, format & clé TVA, doublons, normalisation."
+    )
+    lines.append(
+        "- "
+        + (
+            "Existence & état administratif vérifiés contre l'API publique recherche-entreprises.api.gouv.fr."
+            if online_used
+            else "Mode OFFLINE : existence des entités NON vérifiée contre SIRENE (relancer avec --online)."
+        )
+    )
+    lines.append(
+        "- Les décisions de fusion/suppression restent à la main du client ; aucune donnée comptable ou fiscale n'est touchée."
+    )
+    return "\n".join(lines) + "\n"
 
 
 def ecrire_csv_annote(rows, mapping, findings, out: Path):
-    idx_map = {r.get(mapping["id"], str(i + 1)): [] for i, r in enumerate(rows, start=1)} if mapping["id"] else {}
-    for rid, crit, champ, detail, action in findings:
+    idx_map = (
+        {r.get(mapping["id"], str(i + 1)): [] for i, r in enumerate(rows, start=1)}
+        if mapping["id"]
+        else {}
+    )
+    for rid, crit, champ, detail, _action in findings:
         idx_map.setdefault(rid, []).append(f"{crit}:{champ}:{detail}")
     with out.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, delimiter=";")
-        w.writerow(list(rows[0].keys()) + ["DEFAUTS_DETECTED"])
-        for rid, r in zip(idx_map, rows):
-            w.writerow(list(r.values()) + [" | ".join(idx_map[rid])])
+        w.writerow([*list(rows[0].keys()), "DEFAUTS_DETECTED"])
+        for rid, r in zip(idx_map, rows, strict=False):
+            w.writerow([*list(r.values()), " | ".join(idx_map[rid])])
 
 
 # ---------------------------------------------------------------- main
+
 
 def main():
     ap = argparse.ArgumentParser()

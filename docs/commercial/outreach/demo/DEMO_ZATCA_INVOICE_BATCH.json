@@ -1,0 +1,38 @@
+[
+  {
+    "id": "INV-2026-0001",
+    "icv": 1,
+    "uuid": "4f9d2d41-7910-4bf6-b4d2-d7b1a2c34567",
+    "pih": "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI4NjExN2Q2NDhkNzg1ZTZmMw==",
+    "invoice_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2==",
+    "total": "11500.00",
+    "tax": "1500.00"
+  },
+  {
+    "id": "INV-2026-0002",
+    "icv": 2,
+    "uuid": "8e3b1c90-4a21-4f12-9c34-bcdef0123456",
+    "pih": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2==",
+    "invoice_hash": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3==",
+    "total": "4600.00",
+    "tax": "600.00"
+  },
+  {
+    "id": "INV-2026-0003",
+    "icv": 4,
+    "uuid": "invalid-uuid-format-test",
+    "pih": "WRONG_PIH_BREAKING_CHAIN_CONTINUITY_VALUE==",
+    "invoice_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4==",
+    "total": "23000.00",
+    "tax": "3000.00"
+  },
+  {
+    "id": "INV-2026-0004",
+    "icv": 5,
+    "uuid": "c5d6e7f8-a9b0-4c1d-2e3f-4a5b6c7d8e9f",
+    "pih": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4==",
+    "invoice_hash": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5==",
+    "total": "8050.00",
+    "tax": "1050.00"
+  }
+]

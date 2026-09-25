@@ -56,6 +56,11 @@ FORBIDDEN_PATTERNS = [
             # red on `main` at `ec98ab2` before any PR touched it — the same
             # failure `studies/` caused at `eb2d798` before its own exemption.
             "research/*",
+            # `tools/` is a standalone developer & diagnostic CLI toolchain
+            # (e.g. `tools/hard_currency_engine/cli.py`, `tools/fr_einvoicing/`).
+            # These are standalone terminal utilities whose stdout output is
+            # their user interface.
+            "tools/*",
             "dev_setup.py",
             "live_db_restructure.py",
             "test_visual_pedagogy_ui.py",

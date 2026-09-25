@@ -1,0 +1,38 @@
+[
+  {
+    "id": "INV-2026-0001",
+    "icv": 1,
+    "uuid": "4f9d2d41-7910-4bf6-b4d2-d7b1a2c34567",
+    "pih": "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI4NjExN2Q2NDhkNzg1ZTZmMw==",
+    "invoice_hash": "tlnzeAHu3tlxhcYu9sQxq0Ow0QhPqGMoXqQkz20YfVY=",
+    "total": "11500.00",
+    "tax": "1500.00"
+  },
+  {
+    "id": "INV-2026-0002",
+    "icv": 2,
+    "uuid": "8e3b1c90-4a21-4f12-9c34-bcdef0123456",
+    "pih": "tlnzeAHu3tlxhcYu9sQxq0Ow0QhPqGMoXqQkz20YfVY=",
+    "invoice_hash": "SNJpKCJaZvgnlOHxUwUbVxvCCtMG/4O9Tt9wdYEjTsE=",
+    "total": "4600.00",
+    "tax": "600.00"
+  },
+  {
+    "id": "INV-2026-0003",
+    "icv": 3,
+    "uuid": "cfc28a63-7521-4bd2-a35c-9ae6e301e494",
+    "pih": "SNJpKCJaZvgnlOHxUwUbVxvCCtMG/4O9Tt9wdYEjTsE=",
+    "invoice_hash": "rTgQ72c2yvxr/BM2TIxfKllQf68P2CHHhEgM6l29YJw=",
+    "total": "23000.00",
+    "tax": "3000.00"
+  },
+  {
+    "id": "INV-2026-0004",
+    "icv": 4,
+    "uuid": "ca042c07-c8ad-4572-827a-6d1499027f01",
+    "pih": "rTgQ72c2yvxr/BM2TIxfKllQf68P2CHHhEgM6l29YJw=",
+    "invoice_hash": "P5dm309X7qEqZ7TA5F/2GzNx/XXwomS7f+4M51J6hb4=",
+    "total": "8050.00",
+    "tax": "1050.00"
+  }
+]

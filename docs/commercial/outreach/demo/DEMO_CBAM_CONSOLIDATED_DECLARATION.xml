@@ -1,0 +1,112 @@
+<?xml version="1.0" ?>
+<CBAMDeclaration xmlns="urn:eu:cbam:v1:declaration" regulation="EU-2023-956" year="2026">
+  <AuthorisedDeclarant>
+    <EORINumber>FR12345678900012</EORINumber>
+    <Role>IMPORTER</Role>
+  </AuthorisedDeclarant>
+  <DeclarationSummary>
+    <TotalGoodsItems>5</TotalGoodsItems>
+    <TotalMassTonnes>73500.00</TotalMassTonnes>
+    <TotalSavingsEUR>72549.38</TotalSavingsEUR>
+  </DeclarationSummary>
+  <ImportedGoodsItem>
+    <CNCode>72071114</CNCode>
+    <Description>Billettes d'acier non allié (Filière DRI-EAF)</Description>
+    <MassInTonnes>22000.00</MassInTonnes>
+    <CountryOfOrigin>DZ</CountryOfOrigin>
+    <ProductionInstallation>
+      <Name>Tosyali Iron Steel Industry Algerie SPA</Name>
+      <Country>DZ</Country>
+    </ProductionInstallation>
+    <EmbeddedEmissions>
+      <CalculationMethod>ACTUAL_INSTALLATION_DATA</CalculationMethod>
+      <SpecificDirectEmissions>0.9500</SpecificDirectEmissions>
+      <SpecificIndirectEmissions>0.0000</SpecificIndirectEmissions>
+      <DefaultValueAvoided>1.6290</DefaultValueAvoided>
+    </EmbeddedEmissions>
+    <FinancialImpact>
+      <TotalCertificatesRequired>279.58</TotalCertificatesRequired>
+      <CarbonCostSavingsEUR>28008.75</CarbonCostSavingsEUR>
+    </FinancialImpact>
+  </ImportedGoodsItem>
+  <ImportedGoodsItem>
+    <CNCode>72142000</CNCode>
+    <Description>Ronds à béton crénelés (Rebar)</Description>
+    <MassInTonnes>18000.00</MassInTonnes>
+    <CountryOfOrigin>DZ</CountryOfOrigin>
+    <ProductionInstallation>
+      <Name>Algerian Qatari Steel (AQS)</Name>
+      <Country>DZ</Country>
+    </ProductionInstallation>
+    <EmbeddedEmissions>
+      <CalculationMethod>ACTUAL_INSTALLATION_DATA</CalculationMethod>
+      <SpecificDirectEmissions>1.0500</SpecificDirectEmissions>
+      <SpecificIndirectEmissions>0.0000</SpecificIndirectEmissions>
+      <DefaultValueAvoided>1.7800</DefaultValueAvoided>
+    </EmbeddedEmissions>
+    <FinancialImpact>
+      <TotalCertificatesRequired>292.61</TotalCertificatesRequired>
+      <CarbonCostSavingsEUR>24637.50</CarbonCostSavingsEUR>
+    </FinancialImpact>
+  </ImportedGoodsItem>
+  <ImportedGoodsItem>
+    <CNCode>31021000</CNCode>
+    <Description>Urée contenant plus de 45% d'azote</Description>
+    <MassInTonnes>12000.00</MassInTonnes>
+    <CountryOfOrigin>DZ</CountryOfOrigin>
+    <ProductionInstallation>
+      <Name>Sorfert Algerie SPA</Name>
+      <Country>DZ</Country>
+    </ProductionInstallation>
+    <EmbeddedEmissions>
+      <CalculationMethod>ACTUAL_INSTALLATION_DATA</CalculationMethod>
+      <SpecificDirectEmissions>0.8800</SpecificDirectEmissions>
+      <SpecificIndirectEmissions>0.0000</SpecificIndirectEmissions>
+      <DefaultValueAvoided>1.3400</DefaultValueAvoided>
+    </EmbeddedEmissions>
+    <FinancialImpact>
+      <TotalCertificatesRequired>152.85</TotalCertificatesRequired>
+      <CarbonCostSavingsEUR>10350.00</CarbonCostSavingsEUR>
+    </FinancialImpact>
+  </ImportedGoodsItem>
+  <ImportedGoodsItem>
+    <CNCode>28141000</CNCode>
+    <Description>Ammoniac anhydre</Description>
+    <MassInTonnes>6500.00</MassInTonnes>
+    <CountryOfOrigin>DZ</CountryOfOrigin>
+    <ProductionInstallation>
+      <Name>Fertial Annaba / Sorfert</Name>
+      <Country>DZ</Country>
+    </ProductionInstallation>
+    <EmbeddedEmissions>
+      <CalculationMethod>ACTUAL_INSTALLATION_DATA</CalculationMethod>
+      <SpecificDirectEmissions>1.7200</SpecificDirectEmissions>
+      <SpecificIndirectEmissions>0.0000</SpecificIndirectEmissions>
+      <DefaultValueAvoided>2.2500</DefaultValueAvoided>
+    </EmbeddedEmissions>
+    <FinancialImpact>
+      <TotalCertificatesRequired>197.11</TotalCertificatesRequired>
+      <CarbonCostSavingsEUR>6459.38</CarbonCostSavingsEUR>
+    </FinancialImpact>
+  </ImportedGoodsItem>
+  <ImportedGoodsItem>
+    <CNCode>25231000</CNCode>
+    <Description>Clinkers de ciment</Description>
+    <MassInTonnes>15000.00</MassInTonnes>
+    <CountryOfOrigin>DZ</CountryOfOrigin>
+    <ProductionInstallation>
+      <Name>GICA Biskra / LafargeHolcim Algérie</Name>
+      <Country>DZ</Country>
+    </ProductionInstallation>
+    <EmbeddedEmissions>
+      <CalculationMethod>ACTUAL_INSTALLATION_DATA</CalculationMethod>
+      <SpecificDirectEmissions>0.7600</SpecificDirectEmissions>
+      <SpecificIndirectEmissions>0.0000</SpecificIndirectEmissions>
+      <DefaultValueAvoided>0.8700</DefaultValueAvoided>
+    </EmbeddedEmissions>
+    <FinancialImpact>
+      <TotalCertificatesRequired>31.62</TotalCertificatesRequired>
+      <CarbonCostSavingsEUR>3093.75</CarbonCostSavingsEUR>
+    </FinancialImpact>
+  </ImportedGoodsItem>
+</CBAMDeclaration>

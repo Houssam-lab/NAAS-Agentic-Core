@@ -44,7 +44,13 @@ def load(path: Path, label: str) -> dict | None:
 
 
 def run_git(args: list[str]) -> str:
-    completed = subprocess.run(["git", *args], cwd=ROOT, check=True, capture_output=True, text=True)
+    completed = subprocess.run(
+        ["git", "-c", "core.quotepath=false", *args],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
     return completed.stdout
 
 
