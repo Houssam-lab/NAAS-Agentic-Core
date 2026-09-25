@@ -177,8 +177,12 @@
       "docs/commercial/outreach/demo/DEMO_BELGIUM_PEPPOL_20_FICHES.csv",
       "docs/commercial/outreach/demo/DEMO_BELGIUM_PEPPOL_20_FICHES_ASSAINI.csv",
       "docs/commercial/outreach/demo/DEMO_CBAM_CARGO_MANIFEST.csv",
+      "docs/commercial/outreach/demo/DEMO_CBAM_CONSOLIDATED_DECLARATION.xml",
+      "docs/commercial/outreach/demo/DEMO_EAA_DECLARATION.md",
+      "docs/commercial/outreach/demo/DEMO_EAA_REMEDIATED.html",
       "docs/commercial/outreach/demo/DEMO_ZATCA_INVOICE_BATCH.json",
       "docs/commercial/outreach/demo/DEMO_ZATCA_INVOICE_BATCH_REPAIRED.json",
+      "docs/commercial/outreach/demo/DEMO_ZATCA_UBL_INVOICE.xml",
       "docs/commercial/outreach/demo/RAPPORT_DIAGNOSTIC_BELGIQUE_PEPPOL.md",
       "docs/commercial/outreach/demo/RAPPORT_DIAGNOSTIC_FRANCE_RFE.md",
       "docs/commercial/outreach/dispatched_2026/01_FR_PDP_Pennylane.txt",
@@ -220,6 +224,7 @@
       "tools/hard_currency_engine/belgium_validator.py",
       "tools/hard_currency_engine/cbam_calculator.py",
       "tools/hard_currency_engine/cli.py",
+      "tools/hard_currency_engine/contracts.py",
       "tools/hard_currency_engine/crm_dispatcher.py",
       "tools/hard_currency_engine/eaa_scanner.py",
       "tools/hard_currency_engine/france_validator.py",
@@ -228,8 +233,8 @@
       "دليل-التشغيل-الميداني-والإنزال-التجاري-للعملة-الصعبة.md",
       "سجل-العملاء-والمشترين-الدوليين-للعملة-الصعبة.md"
     ],
-    "content_sha256_excluding_packet": "85fa2753216413e3acd9befd4f8ec4c6f680a962fccff0d84032b5a99b2808e6",
-    "refreshed_on": "2026-09-24",
+    "content_sha256_excluding_packet": "9d28bcacdbdedbc46749213112e8f172e474ce54eb2c93ada0795eb147d6f4e6",
+    "refreshed_on": "2026-09-25",
     "refresh_command": "python3 scripts/research/refresh_acceptance_diff_snapshot.py"
   }
 }
