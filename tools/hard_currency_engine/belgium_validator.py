@@ -47,7 +47,36 @@ def validate_bce_modulo97(raw_number: str) -> tuple[bool, str, str]:
 
 def format_peppol_id(bce_clean: str) -> str:
     digits = re.sub(r"\D", "", bce_clean)
+    if len(digits) == 9:
+        digits = "0" + digits
     return f"0208:{digits}"
+
+
+def get_peppol_directory_url(bce_clean: str) -> str:
+    """Génère l'URL officielle de vérification sur l'annuaire européen Peppol Directory."""
+    digits = re.sub(r"\D", "", bce_clean)
+    if len(digits) == 9:
+        digits = "0" + digits
+    return f"https://directory.peppol.eu/participant/iso6523-actorid-upis%3A%3A0208%3A{digits}"
+
+
+def get_kbo_public_url(bce_clean: str) -> str:
+    """Génère l'URL de consultation directe sur la Banque-Carrefour des Entreprises (BCE / KBO)."""
+    digits = re.sub(r"\D", "", bce_clean)
+    if len(digits) == 9:
+        digits = "0" + digits
+    return f"https://kbopub.economie.fgov.be/kbopub/zoeknummerform.html?numero={digits}"
+
+
+def validate_belgian_postal_code(cp: str) -> tuple[bool, str, str]:
+    """Validation du code postal belge (4 chiffres compris entre 1000 et 9992)."""
+    digits = re.sub(r"\D", "", cp or "")
+    if len(digits) != 4:
+        return False, digits, f"Longueur {len(digits)} ≠ 4 chiffres"
+    val = int(digits)
+    if 1000 <= val <= 9992:
+        return True, digits, "OK"
+    return False, digits, f"Code postal {digits} hors plage belge (1000-9992)"
 
 
 def validate_belgian_vat(vat_str: str) -> tuple[bool, str, str]:
@@ -78,6 +107,11 @@ def _validate_belgian_row(
         if not ok_bce:
             err_bce = True
             line_errors.append(f"BCE_INVALID({msg_bce})")
+    elif tva_val and tva_val.upper().startswith("BE"):
+        ok_bce, _clean_bce, msg_bce = validate_bce_modulo97(tva_val[2:])
+        if not ok_bce:
+            err_bce = True
+            line_errors.append(f"BCE_DERIVE_TVA_INVALID({msg_bce})")
     else:
         err_bce = True
         line_errors.append("BCE_MANQUANT")
@@ -87,6 +121,11 @@ def _validate_belgian_row(
         if not ok_tva:
             err_tva = True
             line_errors.append(f"TVA_INVALID({msg_tva})")
+
+    if cp_val:
+        ok_cp, _, msg_cp = validate_belgian_postal_code(cp_val)
+        if not ok_cp:
+            line_errors.append(f"CP_INVALID({msg_cp})")
 
     dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
     if len(dedup_key) > 5:
@@ -184,11 +223,36 @@ def audit_belgian_csv(csv_path: Path) -> dict:
             results["valides"] += 1
 
         row_ann = dict(row)
+        clean_bce_digits = re.sub(r"\D", "", bce_val) or (
+            re.sub(r"\D", "", row.get(cols["tva"], ""))[2:]
+            if cols["tva"] and (row.get(cols["tva"], "") or "").upper().startswith("BE")
+            else ""
+        )
+        if len(clean_bce_digits) == 9:
+            clean_bce_digits = "0" + clean_bce_digits
+
+        ok_mod97, formatted_bce, _ = (
+            validate_bce_modulo97(clean_bce_digits)
+            if len(clean_bce_digits) == 10
+            else (False, clean_bce_digits, "")
+        )
+
         row_ann["ANOMALIES_PEPPOL"] = "; ".join(line_errors) if line_errors else "CONFORME"
         row_ann["PEPPOL_ID"] = (
-            format_peppol_id(bce_val) if bce_val and not line_errors else "A_CORRIGER"
+            format_peppol_id(clean_bce_digits) if ok_mod97 else "A_CORRIGER"
         )
         row_ann["STATUT_PEPPOL"] = "COMPATIBLE" if not line_errors else "NON_CONFORME"
+        row_ann["BCE_ASSAINI"] = formatted_bce if ok_mod97 else ""
+        row_ann["TVA_BE_CALCULEE"] = f"BE{clean_bce_digits}" if ok_mod97 else ""
+        row_ann["PEPPOL_DIRECTORY_URL"] = (
+            get_peppol_directory_url(clean_bce_digits) if ok_mod97 else ""
+        )
+        row_ann["KBO_LOOKUP_URL"] = (
+            get_kbo_public_url(clean_bce_digits) if ok_mod97 else ""
+        )
+        if cols["cp"] and row.get(cols["cp"]):
+            _, healed_cp, _ = validate_belgian_postal_code(row.get(cols["cp"], ""))
+            row_ann["CP_ASSAINI"] = healed_cp
         results["annotees"].append(row_ann)
 
     return results

@@ -47,18 +47,34 @@ def siren_check(siren: str) -> tuple[bool, str, str]:
 
 
 def siret_check(siret: str) -> tuple[bool, str, str]:
-    """Validation d'un SIRET (14 chiffres, Luhn)."""
+    """Validation d'un SIRET (14 chiffres, Luhn, avec règle officielle La Poste)."""
     s = re.sub(r"\D", "", siret or "")
     if len(s) != 14:
         return False, s, f"Longueur {len(s)} ≠ 14"
+    if s.startswith("356000000"):
+        sum_digits = sum(int(ch) for ch in s)
+        if sum_digits % 10 == 0:
+            return True, s, "OK (La Poste)"
+        return False, s, "Échec contrôle somme La Poste"
     if not luhn_ok(s):
         return False, s, "Échec contrôle Luhn"
     return True, s, "OK"
 
 
 def tva_fr_check(tva: str) -> tuple[bool, str, str]:
-    """Validation du numéro de TVA intracommunautaire français (FR + clé 2 chiffres + SIREN)."""
+    """Validation du numéro de TVA intracommunautaire français ou intra-UE."""
     t = re.sub(r"[\s.]", "", (tva or "").upper())
+    if not t:
+        return False, t, "TVA vide"
+    if not t.startswith("FR"):
+        eu_match = re.fullmatch(r"([A-Z]{2})([A-Z0-9]{2,12})", t)
+        if eu_match and eu_match.group(1) in (
+            "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
+            "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL",
+            "PL", "PT", "RO", "SE", "SI", "SK",
+        ):
+            return True, t, f"OK (Intra-UE {eu_match.group(1)})"
+        return False, t, "Format invalide (attendu FR + 2 chiffres + 9 chiffres SIREN)"
     m = re.fullmatch(r"FR(\d{2})(\d{9})", t)
     if not m:
         return False, t, "Format invalide (attendu FR + 2 chiffres + 9 chiffres SIREN)"
@@ -67,6 +83,21 @@ def tva_fr_check(tva: str) -> tuple[bool, str, str]:
     if key != expected_key:
         return False, t, f"Clé erronée ({key} ≠ attendu {expected_key})"
     return True, t, "OK"
+
+
+def validate_french_postal_code(cp: str) -> tuple[bool, str, str]:
+    """Valide et assainit un code postal français (5 chiffres, départements métropole et DOM-TOM)."""
+    raw = re.sub(r"\D", "", cp or "")
+    if len(raw) == 4:
+        raw = "0" + raw
+    if len(raw) != 5:
+        return False, raw, f"Longueur {len(raw)} ≠ 5 chiffres"
+    dept = raw[:2]
+    dom_tom = ("971", "972", "973", "974", "975", "976", "977", "978", "984", "986", "987", "988")
+    valid_depts = {"20", *(f"{i:02d}" for i in range(1, 96))}
+    if dept in valid_depts or raw[:3] in dom_tom:
+        return True, raw, "OK"
+    return False, raw, f"Département {dept} inconnu"
 
 
 def compute_french_vat_key(siren: str) -> str:
@@ -131,6 +162,17 @@ def _validate_french_row(
         if not ok_s:
             has_siren_err = True
             line_errors.append(f"SIREN_DERIVE_INVALID({msg_s})")
+    elif tva_val and tva_val.upper().startswith("FR"):
+        tva_digits = re.sub(r"\D", "", tva_val)
+        if len(tva_digits) == 11:
+            siren_from_tva = tva_digits[2:]
+            ok_s, _, msg_s = siren_check(siren_from_tva)
+            if not ok_s:
+                has_siren_err = True
+                line_errors.append(f"SIREN_DERIVE_TVA_INVALID({msg_s})")
+        else:
+            has_siren_err = True
+            line_errors.append("SIREN_MANQUANT")
     else:
         has_siren_err = True
         line_errors.append("SIREN_MANQUANT")
@@ -146,6 +188,11 @@ def _validate_french_row(
         if not ok_tva:
             has_tva_err = True
             line_errors.append(f"TVA_INVALID({msg_tva})")
+
+    if cp_val:
+        ok_cp, _, msg_cp = validate_french_postal_code(cp_val)
+        if not ok_cp:
+            line_errors.append(f"CP_INVALID({msg_cp})")
 
     dedup_key = f"{norm(nom_val)}_{norm(cp_val)}"
     if len(dedup_key) > 5:
@@ -223,14 +270,26 @@ def audit_french_csv(csv_path: Path) -> dict:
             results["valides"] += 1
 
         row_ann = dict(row)
-        clean_s = re.sub(r"\D", "", siren_val) or (
-            re.sub(r"\D", "", siret_val)[:9] if siret_val else ""
+        clean_s = (
+            re.sub(r"\D", "", siren_val)
+            or (re.sub(r"\D", "", siret_val)[:9] if siret_val else "")
+            or (
+                re.sub(r"\D", "", row.get(cols["tva"], ""))[2:]
+                if cols["tva"]
+                and (row.get(cols["tva"], "") or "").upper().startswith("FR")
+                and len(re.sub(r"\D", "", row.get(cols["tva"], ""))) == 11
+                else ""
+            )
         )
         row_ann["ANOMALIES_RFE"] = "; ".join(line_errors) if line_errors else "CONFORME"
         row_ann["STATUT_RFE"] = "CONFORME" if not line_errors else "A_CORRIGER"
+        row_ann["SIREN_ASSAINI"] = clean_s if clean_s and luhn_ok(clean_s) else ""
         row_ann["TVA_FR_CALCULEE"] = (
             compute_french_vat_key(clean_s) if clean_s and luhn_ok(clean_s) else ""
         )
+        if cols["cp"] and row.get(cols["cp"]):
+            _, healed_cp, _ = validate_french_postal_code(row.get(cols["cp"], ""))
+            row_ann["CP_ASSAINI"] = healed_cp
         results["annotees"].append(row_ann)
 
     return results

@@ -26,6 +26,7 @@ from tools.hard_currency_engine.cbam_calculator import (
     CBAM_CATALOG,
     calculate_cbam,
     calculate_cbam_batch,
+    generate_cbam_batch_xml,
     generate_cbam_xml,
     generate_sensitivity_table,
 )
@@ -33,6 +34,7 @@ from tools.hard_currency_engine.crm_dispatcher import dispatch_campaign
 from tools.hard_currency_engine.eaa_scanner import (
     audit_html_content,
     generate_declaration_accessibilite,
+    remediate_html_content,
 )
 from tools.hard_currency_engine.france_validator import (
     audit_french_csv,
@@ -43,7 +45,9 @@ from tools.hard_currency_engine.zatca_validator import (
     audit_zatca_batch,
     decode_zatca_tlv,
     encode_zatca_tlv,
+    generate_sample_zatca_ubl_xml,
     repair_zatca_chain,
+    validate_zatca_invoice_type,
 )
 
 
@@ -91,7 +95,9 @@ def _print_cbam_catalog():
         print(f"  - {k} : {v['nom']} ({v['secteur']}) -> Installation: {v['installation_nom']}")
 
 
-def _run_cbam_manifest(manifest_path: str, price: float, as_json: bool):
+def _run_cbam_manifest(
+    manifest_path: str, price: float, as_json: bool, batch_xml: str | None = None, eori: str = "FR12345678900012"
+):
     p = Path(manifest_path)
     lines = [
         line
@@ -107,16 +113,21 @@ def _run_cbam_manifest(manifest_path: str, price: float, as_json: bool):
     batch_res = calculate_cbam_batch(rows, cert_price=price)
     if as_json:
         print(json.dumps(batch_res, indent=2, ensure_ascii=False))
-        return
-    print("=" * 80)
-    print(f"RAPPORT DE MANIFESTE CBAM CONSOLIDÉ — {p.name}")
-    print(
-        f"Lignes traitées : {batch_res['nb_lignes']} | Tonnage total : {batch_res['total_tonnes']:,.0f} t"
-    )
-    print(f"Coût total valeurs par défaut : {batch_res['total_cout_defaut']:,.2f} €")
-    print(f"Coût total données réelles     : {batch_res['total_cout_reel']:,.2f} €")
-    print(f"💰 ÉCONOMIE NETTE GLOBALE      : {batch_res['economie_globale_eur']:,.2f} €")
-    print("=" * 80)
+    else:
+        print("=" * 80)
+        print(f"RAPPORT DE MANIFESTE CBAM CONSOLIDÉ — {p.name}")
+        print(
+            f"Lignes traitées : {batch_res['nb_lignes']} | Tonnage total : {batch_res['total_tonnes']:,.0f} t"
+        )
+        print(f"Coût total valeurs par défaut : {batch_res['total_cout_defaut']:,.2f} €")
+        print(f"Coût total données réelles     : {batch_res['total_cout_reel']:,.2f} €")
+        print(f"💰 ÉCONOMIE NETTE GLOBALE      : {batch_res['economie_globale_eur']:,.2f} €")
+        print("=" * 80)
+
+    if batch_xml:
+        xml_str = generate_cbam_batch_xml(batch_res, declarant_eori=eori)
+        Path(batch_xml).write_text(xml_str, encoding="utf-8")
+        print(f"✅ Déclaration XML consolidée exportée dans : {batch_xml}")
 
 
 def cmd_cbam(args):
@@ -125,7 +136,9 @@ def cmd_cbam(args):
         return
 
     if args.manifest:
-        _run_cbam_manifest(args.manifest, args.price, args.json)
+        _run_cbam_manifest(
+            args.manifest, args.price, args.json, args.batch_xml, getattr(args, "eori", "FR12345678900012") or "FR12345678900012"
+        )
         return
 
     if not args.hs or args.tonnes is None:
@@ -215,8 +228,23 @@ def cmd_zatca(args):
         print("QR Code TLV Décodé :")
         for tag, val in sorted(decoded.items()):
             print(f"  Tag {tag} : {val}")
+    elif getattr(args, "ubl", False):
+        sample_data = {
+            "id": "INV-2026-001",
+            "uuid": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+            "icv": 1,
+            "seller_vat": "300000000000003",
+            "total": 50000.0,
+            "vat": 7500.0,
+        }
+        xml_ubl = generate_sample_zatca_ubl_xml(sample_data)
+        if getattr(args, "out", None):
+            Path(args.out).write_text(xml_ubl, encoding="utf-8")
+            print(f"✅ Facture UBL ZATCA générée dans : {args.out}")
+        else:
+            print(xml_ubl)
     else:
-        print("Utilisez --qr-encode, --qr-decode ou --audit-batch.")
+        print("Utilisez --qr-encode, --qr-decode, --audit-batch ou --ubl.")
 
 
 def cmd_eaa(args):
@@ -235,7 +263,7 @@ def cmd_eaa(args):
         f"AUDIT D'ACCESSIBILITÉ WEB (EAA / WCAG 2.1 AA) — Score: {res['score_accessibilite']:.0f}/100"
     )
     print(
-        f"Images : {res['total_images']} | Formulaires : {res['total_inputs']} | Liens : {res['total_liens']}"
+        f"Images : {res['total_images']} | Formulaires : {res['total_inputs']} | Liens : {res['total_liens']} | Boutons : {res['total_boutons']}"
     )
     print(
         f"Statut : {'🟢 Conforme' if res['est_conforme'] else '🔴 Non-conformités critiques détectées'}"
@@ -251,6 +279,10 @@ def cmd_eaa(args):
             print(f"\n[{item['criticite']}] {item['norme']} - {item['constat']}")
             print(f"Conseil : {item['conseil']}")
             print(f"Solution : {item['snippet_solution']}")
+
+    if getattr(args, "remediate_out", None):
+        Path(args.remediate_out).write_text(res["code_html_assaini"], encoding="utf-8")
+        print(f"\n✅ Code HTML assaini écrit dans : {args.remediate_out}")
 
     if args.declaration:
         decl = generate_declaration_accessibilite(
@@ -299,6 +331,8 @@ def main():
     p_cb.add_argument("--see-actual", type=float, help="Valeur réelle d'émissions tCO2/t")
     p_cb.add_argument("--price", type=float, default=75.0, help="Prix du certificat ETS")
     p_cb.add_argument("--xml", help="Chemin du fichier XML de déclaration à exporter")
+    p_cb.add_argument("--batch-xml", help="Chemin du fichier XML de déclaration consolidée")
+    p_cb.add_argument("--eori", default="FR12345678900012", help="Numéro EORI du déclarant")
     p_cb.add_argument("--manifest", help="Fichier CSV de manifeste multi-cargaisons")
     p_cb.add_argument(
         "--sensitivity", action="store_true", help="Générer la table de sensibilité financière"
@@ -314,6 +348,8 @@ def main():
     p_za.add_argument("--qr-decode", help="Décoder une chaîne QR Base64")
     p_za.add_argument("--audit-batch", help="Fichier JSON d'un lot de factures à auditer")
     p_za.add_argument("--repair-out", help="Fichier JSON de sortie pour le lot réparé")
+    p_za.add_argument("--ubl", action="store_true", help="Générer un exemple de facture XML UBL 2.1 ZATCA")
+    p_za.add_argument("--out", help="Fichier de sortie")
     p_za.add_argument("--json", action="store_true", help="Sortie JSON")
 
     # EAA
@@ -324,6 +360,7 @@ def main():
     p_ea.add_argument(
         "--remediation", action="store_true", help="Afficher les snippets de remédiation"
     )
+    p_ea.add_argument("--remediate-out", help="Fichier HTML assaini de sortie")
     p_ea.add_argument("--json", action="store_true", help="Sortie JSON")
 
     # CRM

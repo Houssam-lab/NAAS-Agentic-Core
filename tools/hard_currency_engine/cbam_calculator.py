@@ -60,6 +60,56 @@ CBAM_CATALOG = {
         "installation_pays": "DZ",
         "installation_coordonnees": "34.850, 5.730",
     },
+    "72083900": {
+        "nom": "Produits laminés plats en fer/acier (Coils à chaud)",
+        "secteur": "Acier / Produits plats",
+        "see_default": 2.100,
+        "see_actual_dz": 1.150,
+        "bm_free_alloc": 0.510,
+        "installation_nom": "Tosyali Iron Steel Industry Algerie SPA (Bethioua)",
+        "installation_pays": "DZ",
+        "installation_coordonnees": "35.807, -0.278",
+    },
+    "72131000": {
+        "nom": "Fil machine (Wire rod) crénelé en couronnes",
+        "secteur": "Acier / Produits longs",
+        "see_default": 1.850,
+        "see_actual_dz": 1.080,
+        "bm_free_alloc": 0.430,
+        "installation_nom": "Algerian Qatari Steel (AQS Bellara)",
+        "installation_pays": "DZ",
+        "installation_coordonnees": "36.758, 6.042",
+    },
+    "25232900": {
+        "nom": "Ciment Portland ordinaire gris",
+        "secteur": "Ciment",
+        "see_default": 0.760,
+        "see_actual_dz": 0.620,
+        "bm_free_alloc": 0.540,
+        "installation_nom": "Groupe Industriel des Ciments d'Algérie (GICA)",
+        "installation_pays": "DZ",
+        "installation_coordonnees": "36.700, 3.050",
+    },
+    "31023090": {
+        "nom": "Nitrate d'ammonium",
+        "secteur": "Engrais azotés",
+        "see_default": 1.550,
+        "see_actual_dz": 0.990,
+        "bm_free_alloc": 0.440,
+        "installation_nom": "Fertial Annaba / Arzew",
+        "installation_pays": "DZ",
+        "installation_coordonnees": "36.850, 7.760",
+    },
+    "76011000": {
+        "nom": "Aluminium non allié sous forme brute (Lingots)",
+        "secteur": "Aluminium",
+        "see_default": 8.600,
+        "see_actual_dz": 4.200,
+        "bm_free_alloc": 1.450,
+        "installation_nom": "Complexe Métallurgique Algérien",
+        "installation_pays": "DZ",
+        "installation_coordonnees": "36.750, 5.050",
+    },
 }
 
 CBAM_FACTOR_2026 = 0.975
@@ -206,6 +256,53 @@ def generate_cbam_xml(res: dict, declarant_eori: str = "FR12345678900012") -> st
         financial, "TotalCertificatesRequired"
     ).text = f"{(res['cout_actual'] / res['prix_certificat']):.2f}"
     ET.SubElement(financial, "CarbonCostSavingsEUR").text = f"{res['economie_totale']:.2f}"
+
+    rough_string = ET.tostring(root, "utf-8")
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
+
+
+def generate_cbam_batch_xml(batch_res: dict, declarant_eori: str = "FR12345678900012") -> str:
+    """Génère une déclaration consolidée multi-marchandises conforme au registre CBAM européen."""
+    root = ET.Element(
+        "CBAMDeclaration",
+        attrib={
+            "xmlns": "urn:eu:cbam:v1:declaration",
+            "regulation": "EU-2023-956",
+            "year": "2026",
+        },
+    )
+
+    declarant = ET.SubElement(root, "AuthorisedDeclarant")
+    ET.SubElement(declarant, "EORINumber").text = declarant_eori
+    ET.SubElement(declarant, "Role").text = "IMPORTER"
+
+    summary = ET.SubElement(root, "DeclarationSummary")
+    ET.SubElement(summary, "TotalGoodsItems").text = str(batch_res.get("nb_lignes", 0))
+    ET.SubElement(summary, "TotalMassTonnes").text = f"{batch_res.get('total_tonnes', 0.0):.2f}"
+    ET.SubElement(summary, "TotalSavingsEUR").text = f"{batch_res.get('economie_globale_eur', 0.0):.2f}"
+
+    for item in batch_res.get("lignes", []):
+        goods_item = ET.SubElement(root, "ImportedGoodsItem")
+        ET.SubElement(goods_item, "CNCode").text = item["code_hs"]
+        ET.SubElement(goods_item, "Description").text = item["produit"]
+        ET.SubElement(goods_item, "MassInTonnes").text = f"{item['tonnes']:.2f}"
+        ET.SubElement(goods_item, "CountryOfOrigin").text = item["pays_origine"]
+
+        installation = ET.SubElement(goods_item, "ProductionInstallation")
+        ET.SubElement(installation, "Name").text = item["installation"]
+        ET.SubElement(installation, "Country").text = item["pays_origine"]
+
+        emissions = ET.SubElement(goods_item, "EmbeddedEmissions")
+        ET.SubElement(emissions, "CalculationMethod").text = "ACTUAL_INSTALLATION_DATA"
+        ET.SubElement(emissions, "SpecificDirectEmissions").text = f"{item['see_actual']:.4f}"
+        ET.SubElement(emissions, "SpecificIndirectEmissions").text = "0.0000"
+        ET.SubElement(emissions, "DefaultValueAvoided").text = f"{item['see_default']:.4f}"
+
+        financial = ET.SubElement(goods_item, "FinancialImpact")
+        cert_p = item["prix_certificat"] if item.get("prix_certificat") else 75.0
+        ET.SubElement(financial, "TotalCertificatesRequired").text = f"{(item['cout_actual'] / cert_p):.2f}"
+        ET.SubElement(financial, "CarbonCostSavingsEUR").text = f"{item['economie_totale']:.2f}"
 
     rough_string = ET.tostring(root, "utf-8")
     reparsed = minidom.parseString(rough_string)

@@ -118,6 +118,77 @@ def _check_links(html_str: str, findings: list) -> int:
     return len(links)
 
 
+def _check_buttons(html_str: str, findings: list) -> int:
+    buttons = re.findall(r"<button([^>]*)>(.*?)</button>", html_str, re.IGNORECASE | re.DOTALL)
+    bad_buttons = 0
+    for battr, btext in buttons:
+        raw_text = re.sub(r"<[^>]+>", "", btext).strip()
+        has_aria = bool(re.search(r"\b(aria-label|aria-labelledby)\s*=", battr, re.IGNORECASE))
+        if not has_aria and not raw_text:
+            bad_buttons += 1
+
+    if bad_buttons > 0:
+        findings.append(
+            (
+                "CRITIQUE",
+                "WCAG 4.1.2",
+                f"{bad_buttons} bouton(s) sans nom accessible (texte visible ou aria-label manquant)",
+            )
+        )
+    return len(buttons)
+
+
+def _check_form_controls(html_str: str, findings: list):
+    selects = re.findall(r"<select([^>]*)>", html_str, re.IGNORECASE)
+    textareas = re.findall(r"<textarea([^>]*)>", html_str, re.IGNORECASE)
+    unlabelled = 0
+
+    for elem in (*selects, *textareas):
+        has_aria = bool(re.search(r"\b(aria-label|aria-labelledby)\s*=", elem, re.IGNORECASE))
+        has_id = bool(re.search(r'\bid\s*=\s*["\'](.*?)["\']', elem, re.IGNORECASE))
+        if not has_aria:
+            if has_id:
+                id_val = re.search(r'\bid\s*=\s*["\'](.*?)["\']', elem, re.IGNORECASE).group(1)
+                label_for = re.search(
+                    rf'<label[^>]*\bfor\s*=\s*["\']{re.escape(id_val)}["\']',
+                    html_str,
+                    re.IGNORECASE,
+                )
+                if not label_for:
+                    unlabelled += 1
+            else:
+                unlabelled += 1
+
+    if unlabelled > 0:
+        findings.append(
+            (
+                "CRITIQUE",
+                "WCAG 1.3.1 / 3.3.2",
+                f"{unlabelled} liste(s) déroulante(s) ou zone(s) de texte sans étiquette (<label>)",
+            )
+        )
+
+
+def _check_viewport_and_landmarks(html_str: str, findings: list):
+    viewport = re.search(r'<meta[^>]*name\s*=\s*["\']viewport["\'][^>]*>', html_str, re.IGNORECASE)
+    if viewport:
+        content = viewport.group(0)
+        if re.search(r"user-scalable\s*=\s*no|maximum-scale\s*=\s*1(\.0)?\b", content, re.IGNORECASE):
+            findings.append(
+                (
+                    "MAJEUR",
+                    "WCAG 1.4.4",
+                    "Le zoom mobile est bloqué (user-scalable=no ou maximum-scale=1)",
+                )
+            )
+
+    has_main = bool(re.search(r"<main\b|role\s*=\s*['\"]main['\"]", html_str, re.IGNORECASE))
+    if not has_main:
+        findings.append(
+            ("MOYEN", "WCAG 1.3.1 / 2.4.1", "Zone de contenu principal <main> absente")
+        )
+
+
 def _check_headings_and_tables(html_str: str, findings: list):
     headings = [int(m.group(1)) for m in re.finditer(r"<h([1-6])\b", html_str, re.IGNORECASE)]
     if headings and headings[0] != 1:
@@ -195,6 +266,49 @@ def generate_remediation_guide(findings: list[tuple[str, str, str]]) -> list[dic
     return snippets
 
 
+def remediate_html_content(html_str: str) -> tuple[str, list[str]]:
+    """Génère une version corrigée du code HTML en injectant les attributs d'accessibilité manquants."""
+    remediated = html_str
+    actions: list[str] = []
+
+    # 1. Injecter lang="fr" si html est sans lang
+    if re.search(r"<html\b(?![^>]*\blang\b)[^>]*>", remediated, re.IGNORECASE):
+        remediated = re.sub(
+            r"<html\b([^>]*)>",
+            r'<html\1 lang="fr">',
+            remediated,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+        actions.append("Ajout de l'attribut lang=\"fr\" sur <html>")
+
+    # 2. Injecter un alt="" sur les images sans alt
+    def fix_img_alt(m):
+        tag = m.group(0)
+        if not re.search(r"\balt\s*=", tag, re.IGNORECASE):
+            actions.append("Ajout d'attribut alt=\"\" sur balise <img>")
+            return tag[:-1] + ' alt="">'
+        return tag
+
+    remediated = re.sub(r"<img\b[^>]*>", fix_img_alt, remediated, flags=re.IGNORECASE)
+
+    # 3. Corriger le blocage du zoom viewport
+    if re.search(r'user-scalable\s*=\s*no|maximum-scale\s*=\s*1(\.0)?\b', remediated, re.IGNORECASE):
+        remediated = re.sub(
+            r'user-scalable\s*=\s*no', 'user-scalable=yes', remediated, flags=re.IGNORECASE
+        )
+        actions.append("Déblocage du zoom utilisateur dans le viewport")
+
+    # 4. Injecter balise <main> si absente
+    if not re.search(r"<main\b|role\s*=\s*['\"]main['\"]", remediated, re.IGNORECASE):
+        if "<body>" in remediated and "</body>" in remediated:
+            remediated = remediated.replace("<body>", "<body>\n<main>", 1)
+            remediated = remediated.replace("</body>", "</main>\n</body>", 1)
+            actions.append("Encapsulation du contenu du body dans une balise <main>")
+
+    return remediated, actions
+
+
 def audit_html_content(html_str: str) -> dict:
     """Analyse un contenu HTML pour détecter les non-conformités critiques EAA / WCAG 2.1 AA."""
     findings: list[tuple[str, str, str]] = []
@@ -202,17 +316,24 @@ def audit_html_content(html_str: str) -> dict:
     total_imgs = _check_images(html_str, findings)
     total_inputs = _check_inputs(html_str, findings)
     total_liens = _check_links(html_str, findings)
+    total_buttons = _check_buttons(html_str, findings)
+    _check_form_controls(html_str, findings)
+    _check_viewport_and_landmarks(html_str, findings)
     _check_headings_and_tables(html_str, findings)
     score = compute_accessibility_score(findings)
+    remediated_html, fixes_applied = remediate_html_content(html_str)
 
     return {
         "total_images": total_imgs,
         "total_inputs": total_inputs,
         "total_liens": total_liens,
+        "total_boutons": total_buttons,
         "score_accessibilite": score,
         "anomalies": findings,
         "est_conforme": len(findings) == 0,
         "guide_remediation": generate_remediation_guide(findings),
+        "remediation_actions": fixes_applied,
+        "code_html_assaini": remediated_html,
     }
 
 

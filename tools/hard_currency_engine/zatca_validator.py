@@ -159,7 +159,9 @@ def audit_zatca_batch(invoices: list[dict]) -> dict:
     }
 
 
-def repair_zatca_chain(invoices: list[dict]) -> tuple[list[dict], list[str]]:
+def repair_zatca_chain(
+    invoices: list[dict], force_rehash: bool = False
+) -> tuple[list[dict], list[str]]:
     """Répare une séquence de factures ZATCA rompue (réaligne ICV et recalcule la chaîne PIH)."""
     repaired = []
     actions = []
@@ -168,27 +170,109 @@ def repair_zatca_chain(invoices: list[dict]) -> tuple[list[dict], list[str]]:
     for i, inv in enumerate(invoices, start=1):
         item = dict(inv)
         inv_id = item.get("id", f"INV-{i}")
+        icv_changed = False
+        pih_changed = False
 
         if item.get("icv") != i:
             actions.append(f"Facture {inv_id} : ICV corrigé de {item.get('icv')} à {i}")
             item["icv"] = i
+            icv_changed = True
 
         if item.get("pih") != curr_pih:
             actions.append(f"Facture {inv_id} : PIH réaligné sur le hash précédent")
             item["pih"] = curr_pih
+            pih_changed = True
 
         if not validate_uuid_v4(item.get("uuid", "")):
             new_u = str(uuid.uuid4())
             actions.append(f"Facture {inv_id} : UUID généré ({new_u})")
             item["uuid"] = new_u
+            icv_changed = True
 
-        if not is_valid_base64_sha256(item.get("invoice_hash", "")):
+        needs_new_hash = (
+            force_rehash
+            or icv_changed
+            or pih_changed
+            or not is_valid_base64_sha256(item.get("invoice_hash", ""))
+        )
+
+        if needs_new_hash:
             synth_content = f"{item['uuid']}|{item['icv']}|{item['pih']}|{item.get('total', '0')}"
             new_hash = canonical_invoice_hash(synth_content)
-            actions.append(f"Facture {inv_id} : Hash SHA-256 calculé ({new_hash[:10]}...)")
+            actions.append(f"Facture {inv_id} : Hash SHA-256 recalculé ({new_hash[:10]}...)")
             item["invoice_hash"] = new_hash
 
         curr_pih = item["invoice_hash"]
         repaired.append(item)
 
     return repaired, actions
+
+
+def validate_zatca_invoice_type(type_code: str, subtype: str = "") -> tuple[bool, str]:
+    """Validation des codes types et sous-types officiels ZATCA Phase 2."""
+    valid_codes = {
+        "388": "Facture fiscale (Tax Invoice)",
+        "381": "Note de crédit (Credit Note)",
+        "383": "Note de débit (Debit Note)",
+        "386": "Facture d'acompte (Prepayment Invoice)",
+    }
+    code = str(type_code or "").strip()
+    if code not in valid_codes:
+        return False, f"Code type {code} non conforme ZATCA (attendus: 388, 381, 383, 386)"
+
+    if subtype:
+        sub = str(subtype).strip()
+        if len(sub) != 7 or not sub.isdigit():
+            return False, f"Sous-type {sub} invalide (attendu format à 7 chiffres, ex: 0100000)"
+
+    return True, valid_codes[code]
+
+
+def generate_sample_zatca_ubl_xml(inv: dict) -> str:
+    """Génère un extrait de facture UBL 2.1 conforme aux spécifications techniques ZATCA Phase 2."""
+    inv_id = inv.get("id", "INV-001")
+    u = inv.get("uuid") or str(uuid.uuid4())
+    icv = str(inv.get("icv", 1))
+    pih = inv.get("pih", GENESIS_PIH)
+    seller_vat = inv.get("seller_vat", "300000000000003")
+    total_val = float(inv.get("total", 1000.0))
+    vat_val = float(inv.get("vat", total_val * 0.15))
+    total_str = f"{total_val:.2f}"
+    vat_str = f"{vat_val:.2f}"
+    inc_total_str = f"{(total_val + vat_val):.2f}"
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
+  <cbc:ID>{inv_id}</cbc:ID>
+  <cbc:UUID>{u}</cbc:UUID>
+  <cbc:IssueDate>2026-09-24</cbc:IssueDate>
+  <cbc:IssueTime>14:30:00</cbc:IssueTime>
+  <cbc:InvoiceTypeCode name="0100000">388</cbc:InvoiceTypeCode>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>ICV</cbc:ID>
+    <cbc:UUID>{icv}</cbc:UUID>
+  </cac:AdditionalDocumentReference>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>PIH</cbc:ID>
+    <cac:Attachment>
+      <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">{pih}</cbc:EmbeddedDocumentBinaryObject>
+    </cac:Attachment>
+  </cac:AdditionalDocumentReference>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>{seller_vat}</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:LegalMonetaryTotal>
+    <cbc:TaxExclusiveAmount currencyID="SAR">{total_str}</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="SAR">{inc_total_str}</cbc:TaxInclusiveAmount>
+  </cac:LegalMonetaryTotal>
+</Invoice>"""
